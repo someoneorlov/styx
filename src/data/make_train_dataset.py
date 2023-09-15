@@ -10,16 +10,13 @@ from dotenv import find_dotenv, load_dotenv
 from tqdm import tqdm
 
 from REL.entity_disambiguation import EntityDisambiguation
-from REL.mention_detection import MentionDetection 
+from REL.mention_detection import MentionDetection
 from REL.ner import load_flair_ner
 from REL.utils import process_results
 
 
 def preprocessing(row: pd.Series, title: str, article: str) -> dict:
-    processed = {
-        'title': [row[title], []], 
-        'article': [row[article], []]
-        }
+    processed = {"title": [row[title], []], "article": [row[article], []]}
     return processed
 
 
@@ -35,58 +32,58 @@ def disambiguate_entities(mentions_dataset: pd.DataFrame, entity_disambiguation)
 
 def save_output(dataset, output_filepath: str):
     if os.path.exists(output_filepath):
-        dataset.to_csv(output_filepath, mode='a', header=False, index=False)
+        dataset.to_csv(output_filepath, mode="a", header=False, index=False)
     else:
         dataset.to_csv(output_filepath, index=False)
 
 
 def save_processed_rows(processed_rows_filepath: str, processed_rows: int):
-    with open(processed_rows_filepath, 'w') as f:
+    with open(processed_rows_filepath, "w") as f:
         f.write(str(processed_rows))
 
 
 def load_processed_rows(processed_rows_filepath: str):
     if os.path.exists(processed_rows_filepath):
-        with open(processed_rows_filepath, 'r') as f:
+        with open(processed_rows_filepath, "r") as f:
             return int(f.read().strip())
     return 0
 
 
 @click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('output_filepath', type=click.Path())
-@click.argument('base_url', type=click.Path(exists=True))
-@click.argument('save_interval')
-@click.argument('wiki_version')
-@click.argument('model_alias')
-@click.argument('title')
-@click.argument('article')
+@click.argument("input_filepath", type=click.Path(exists=True))
+@click.argument("output_filepath", type=click.Path())
+@click.argument("base_url", type=click.Path(exists=True))
+@click.argument("save_interval")
+@click.argument("wiki_version")
+@click.argument("model_alias")
+@click.argument("title")
+@click.argument("article")
 def main(
-    input_filepath: str, 
-    output_filepath: str, 
-    base_url: str, 
-    save_interval: int, 
-    wiki_version: str='wiki_2019', 
-    model_alias: str='ed-wiki-2019', 
-    title: str='title', 
-    article: str='article'):
-
-    """ Runs data processing scripts to turn unprocessed data into
-        cleaned data ready to be analyzed.
+    input_filepath: str,
+    output_filepath: str,
+    base_url: str,
+    save_interval: int,
+    wiki_version: str = "wiki_2019",
+    model_alias: str = "ed-wiki-2019",
+    title: str = "title",
+    article: str = "article",
+):
+    """Runs data processing scripts to turn unprocessed data into
+    cleaned data ready to be analyzed.
     """
     logger = logging.getLogger(__name__)
-    logger.info('making data set')
+    logger.info("making data set")
 
     mention_detection = MentionDetection(base_url, wiki_version)
-    tagger =  load_flair_ner("ner-fast")
+    tagger = load_flair_ner("ner-fast")
 
     config = {
         "mode": "eval",
         "model_path": model_alias,
-        }
+    }
     entity_disambiguation = EntityDisambiguation(base_url, wiki_version, config)
 
-    processed_rows_filepath = 'num_processed_rows.txt'
+    processed_rows_filepath = "num_processed_rows.txt"
     start_index = load_processed_rows(processed_rows_filepath)
 
     dataset = pd.read_csv(input_filepath)
@@ -110,12 +107,20 @@ def main(
             continue
 
         # Disambiguate detected mentions
-        mentions_disambiguated = disambiguate_entities(mentions_dataset, entity_disambiguation)
-        result = process_results(mentions_dataset, mentions_disambiguated, processed_row)
+        mentions_disambiguated = disambiguate_entities(
+            mentions_dataset, entity_disambiguation
+        )
+        result = process_results(
+            mentions_dataset, mentions_disambiguated, processed_row
+        )
 
         # Filter mentions with the ORG tag
-        headline_mentions = [mention for mention in result[title] if mention[-1] == 'ORG']
-        body_text_mentions = [mention for mention in result[article] if mention[-1] == 'ORG']
+        headline_mentions = [
+            mention for mention in result[title] if mention[-1] == "ORG"
+        ]
+        body_text_mentions = [
+            mention for mention in result[article] if mention[-1] == "ORG"
+        ]
 
         # Check if any named entities were found in the headline
         if not headline_mentions or not body_text_mentions:
@@ -124,23 +129,26 @@ def main(
         # Mark salient entities
         salient_entities = []
         for body_entity in body_text_mentions:
-            if body_entity[3] in [headline_entity[3] for headline_entity in headline_mentions]:
+            if body_entity[3] in [
+                headline_entity[3] for headline_entity in headline_mentions
+            ]:
                 salient_entities.append(body_entity)
-        
+
         if not salient_entities:
             continue
 
         salient_entities_list = list(set([entity[3] for entity in salient_entities]))
         # Save the annotated article
-        annotated_articles.append({
-            'headline': processed_row[title][0],
-            'body_text': processed_row[article][0],
-            'headline_mentions': headline_mentions,
-            'body_text_mentions': body_text_mentions,
-            'salient_entities': salient_entities,
-            'salient_entities_list': salient_entities_list,
-
-        })
+        annotated_articles.append(
+            {
+                "headline": processed_row[title][0],
+                "body_text": processed_row[article][0],
+                "headline_mentions": headline_mentions,
+                "body_text_mentions": body_text_mentions,
+                "salient_entities": salient_entities,
+                "salient_entities_list": salient_entities_list,
+            }
+        )
 
         # Append DataFrame from the annotated_articles list every save_interval rows
         if (index + 1) % save_interval == 0:
@@ -153,8 +161,8 @@ def main(
     save_processed_rows(processed_rows_filepath, index + 1)
 
 
-if __name__ == '__main__':
-    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+if __name__ == "__main__":
+    log_fmt = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     logging.basicConfig(level=logging.INFO, format=log_fmt)
 
     # not used in this stub but often useful for finding various files
