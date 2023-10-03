@@ -156,7 +156,7 @@ def main(
             save_processed_rows(processed_rows_filepath, index + 1)
             annotated_articles = []
 
-    # Append DataFrame from the annotated_articles list, if there are any remaining rows.
+    # Append DataFrame from the annotated_articles list, if there are any remaining rows
     save_output(pd.DataFrame(annotated_articles), output_filepath)
     save_processed_rows(processed_rows_filepath, index + 1)
 
