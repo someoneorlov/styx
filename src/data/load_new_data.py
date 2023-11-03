@@ -1,3 +1,4 @@
+import argparse
 import feedparser
 import logging
 import time
@@ -5,7 +6,7 @@ import requests
 from requests.exceptions import HTTPError
 from newspaper import Article
 from datetime import datetime
-import pandas as pd
+
 
 # Set up the logger
 logger = logging.getLogger(__name__)
@@ -18,6 +19,9 @@ logger.addHandler(handler)
 
 
 def get_final_url(url):
+    """
+    Resolve and return the final URL after all redirects.
+    """
     try:
         response = requests.get(url, timeout=10, allow_redirects=True)
         return response.url
@@ -27,9 +31,17 @@ def get_final_url(url):
 
 
 def download_article(url):
+    """
+    Download the content of the article and return as text.
+    """
     retries = 3
     delay = 5
-    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    user_agent = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/91.0.4472.124 Safari/537.36"
+    )
+
     headers = {"User-Agent": user_agent}
 
     for attempt in range(retries):
@@ -46,89 +58,140 @@ def download_article(url):
     return None
 
 
-def scrape_news_from_feed(feed_url, limit=20):
-    articles = []
-    failed_parses = []
+def scrape_news_from_feed(feed_url, limit=10000):
+    """
+    Scrape news articles from a given Google News RSS feed.
+
+    Parameters:
+    - feed_url: URL of the Google News RSS feed.
+    - limit: Maximum number of articles to scrape.
+
+    Returns:
+    - A list of dictionaries containing information about each article.
+    """
+    logger.info("Starting the news scraping process...")
+
+    all_articles = []
     feed = feedparser.parse(feed_url)
 
+    logger.info(f"Successfully parsed the RSS feed. Found {len(feed.entries)} entries.")
+
     for i, entry in enumerate(feed.entries):
-        print(i)
         if i == limit:
             break
 
         google_news_url = entry.link
         article_url = get_final_url(google_news_url)
 
-        if article_url:
-            downloaded_article = download_article(article_url)
-            article = Article(article_url)
+        logger.info(f"Attempting to download article from URL: {article_url}")
+
+        data = {
+            "title": entry.title,
+            "text": None,
+            "publish_date": None,
+            "publish_date_source": None,
+            "authors": None,
+            "canonical_link": None,
+            "feed_link": google_news_url,
+            "media_link": entry["source"]["href"],
+            "media_title": entry["source"]["title"],
+            "is_parsed": False,
+            "exception_class": None,
+            "exception_text": None,
+        }
+
+        if not article_url:
+            logger.error(f"Failed to resolve final URL for: {google_news_url}")
+            data.update(
+                {
+                    "exception_class": "URLResolutionError",
+                    "exception_text": "Failed to resolve final URL",
+                }
+            )
+            all_articles.append(data)
+            continue
+
+        downloaded_article = download_article(article_url)
+        article = Article(article_url)
+
+        if downloaded_article:
             article.set_html(downloaded_article)
+        else:
             try:
-                article.parse()
-                publish_date = article.publish_date
-                publish_date_source = "parsed"
-                if publish_date is None and entry["published_parsed"] is not None:
-                    publish_date = datetime.fromtimestamp(
-                        mktime(entry["published_parsed"])
-                    )
-                    publish_date_source = "approximated"
-                elif publish_date is None:
-                    publish_date = datetime.now()
-                    publish_date_source = "current_time"
-
-                publish_date_str = publish_date.strftime("%Y-%m-%d %H:%M:%S")
-
-                articles.append(
+                article.download()
+            except Exception as e:
+                logger.error(f"Failed to download article {article_url}: {str(e)}")
+                data.update(
                     {
-                        "title": article.title,
-                        "text": article.text,
-                        "publish_date": publish_date_str,
-                        "publish_date_source": publish_date_source,
-                        "authors": article.authors,
-                        "canonical_link": article.canonical_link,
-                        "feed_link": article_url,
-                        "media_link": entry["source"]["href"],
-                        "media_title": entry["source"]["title"],
+                        "exception_class": type(e).__name__,
+                        "exception_text": str(e),
                     }
                 )
-            except Exception as err:
-                logger.error(f"An unexpected error occurred for {article_url}: {err}")
-        else:
-            failed_parses.append(
+                all_articles.append(data)
+                continue
+
+        try:
+            article.parse()
+
+            if not all([article.title, article.text, article.canonical_link]):
+                raise ValueError(
+                    "Essential fields are empty, possibly due to "
+                    "bot protection or bad parse"
+                )
+
+            publish_date = article.publish_date
+            publish_date_source = "parsed"
+            if publish_date is None and entry["published_parsed"] is not None:
+                publish_date = datetime.fromtimestamp(
+                    time.mktime(entry["published_parsed"])
+                )
+                publish_date_source = "approximated"
+            elif publish_date is None:
+                publish_date = datetime.now()
+                publish_date_source = "current_time"
+
+            publish_date_str = publish_date.strftime("%Y-%m-%d %H:%M:%S")
+
+            data.update(
                 {
-                    "title": entry.title,
-                    "text": None,
-                    "publish_date": datetime.fromtimestamp(
-                        mktime(entry["published_parsed"])
-                    ).strftime("%Y-%m-%d %H:%M:%S")
-                    if entry["published_parsed"] is not None
-                    else datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "publish_date_source": "approximated"
-                    if entry["published_parsed"] is not None
-                    else "current_time",
-                    "authors": None,
-                    "canonical_link": None,
-                    "feed_link": article_url,
-                    "media_link": entry["source"]["href"],
-                    "media_title": entry["source"]["title"],
-                    "exception_class": None,
-                    "exception_text": None,
+                    "title": article.title,
+                    "text": article.text,
+                    "publish_date": publish_date_str,
+                    "publish_date_source": publish_date_source,
+                    "authors": article.authors,
+                    "canonical_link": article.canonical_link,
+                    "is_parsed": True,
+                }
+            )
+            logger.info(f"Successfully scraped article: {article.title}")
+
+        except Exception as err:
+            logger.error(f"An unexpected error occurred for {article_url}: {err}")
+            data.update(
+                {
+                    "exception_class": type(err).__name__,
+                    "exception_text": str(err),
                 }
             )
 
-    return articles, failed_parses
+        all_articles.append(data)
+
+    logger.info(f"Completed scraping. Total articles scraped: {len(all_articles)}")
+    return all_articles
 
 
-# Execute the scraper
-feed_url = "https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen"
-limit = 20
+def main(feed_url, limit=10000):
+    articles = scrape_news_from_feed(feed_url, limit)
+    # Handle the articles, like printing or saving them
 
-articles, failed_parses = scrape_news_from_feed(feed_url, limit)
 
-# Convert articles and failed_parses to DataFrames for easy analysis and saving
-articles_df = pd.DataFrame(articles)
-failed_parses_df = pd.DataFrame(failed_parses)
-
-# Save to Excel for your analysis
-articles_df.to_excel("new_articles_df.xlsx", index=False)
-failed_parses_df.to_excel("new_failed_parses_df.xlsx", index=False)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Scrape news from a given RSS feed URL."
+    )
+    parser.add_argument("feed_url", help="The RSS feed URL to scrape news from.")
+    parser.add_argument(
+        "--limit", type=int, default=10000, help="Maximum number of articles to scrape."
+    )
+    args = parser.parse_args()
+    main(args.feed_url, args.limit)

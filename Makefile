@@ -142,3 +142,29 @@ help:
 		printf "\n"; \
 	}' \
 	| more $(shell test $(shell uname) = Darwin && echo '--no-init --raw-control-chars')
+
+#################################################################################
+# DOCKER TASKS                                                                  #
+#################################################################################
+
+## Build the Docker image
+docker_build:
+	docker build -t $(PROJECT_NAME)_web:latest .
+
+## Start all services using Docker Compose
+docker_up:
+	docker-compose up -d
+
+## Stop all services using Docker Compose
+docker_down:
+	docker-compose down
+
+## Rebuild and start all services with Docker Compose
+docker_rebuild:
+	docker-compose down
+	docker-compose up --build -d
+
+## Display status of containers managed by Docker Compose
+docker_status:
+	docker-compose ps
+
