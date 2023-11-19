@@ -1,0 +1,9 @@
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT FROM pg_roles WHERE rolname = 'scraping_user'
+    ) THEN
+        CREATE ROLE scraping_user WITH LOGIN PASSWORD '${DB_PASS}';
+    END IF;
+END
+$$;

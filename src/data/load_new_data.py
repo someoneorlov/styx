@@ -7,41 +7,56 @@ import requests
 import psycopg2
 import hashlib
 
+from logging.handlers import RotatingFileHandler
 from requests.exceptions import HTTPError
 from newspaper import Article
 from datetime import datetime
 from psycopg2.extras import execute_batch
+from psycopg2 import OperationalError
 
 
 # Set up the logger
+log_file_path = "/var/log/load_new_data.log"
+
+# Set up a rotating log handler (5 MB per file, keep 3 backup)
+handler = RotatingFileHandler(log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
-handler = logging.FileHandler("app.log")
-handler.setLevel(logging.INFO)
-formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
-def connect_to_db():
-    """Connect to the PostgreSQL database server."""
-    conn = None
-    try:
-        # Read connection parameters from environment variables
-        params = {
-            "dbname": os.getenv("DB_NAME", "default_db_name"),
-            "user": os.getenv("DB_USER", "default_user"),
-            "password": os.getenv("DB_PASS", "default_password"),
-            "host": os.getenv("DB_HOST", "localhost"),
-            "port": os.getenv("DB_PORT", "5432"),
-        }
-        # Connect to the PostgreSQL server
-        logger.info("Attempting to connect to the PostgreSQL database...")
-        conn = psycopg2.connect(**params)
-        logger.info("Connection established")
-    except (Exception, psycopg2.DatabaseError) as error:
-        logger.error(f"Error while connecting to PostgreSQL: {error}")
-    return conn
+def connect_to_db(
+        db_name=None, db_user=None, db_pass=None, db_host=None, db_port="5432",
+        max_retries=5, initial_delay=5):
+    """Connect to the PostgreSQL database server with exponential backoff retries."""
+    # Use environment variables as defaults
+    db_name = db_name or os.getenv("DB_NAME", "default_db_name")
+    db_user = db_user or os.getenv("DB_USER", "default_user")
+    db_pass = db_pass or os.getenv("DB_PASS", "default_password")
+    db_host = db_host or os.getenv("DB_HOST", "localhost")
+    db_port = db_port or os.getenv("DB_PORT", "5432")
+
+    retries = 0
+    delay = initial_delay
+    while retries < max_retries:
+        try:
+            conn = psycopg2.connect(
+                dbname=db_name, user=db_user, password=db_pass,
+                host=db_host, port=db_port
+            )
+            logger.info("Database connection established.")
+            return conn
+        except OperationalError as error:
+            logger.error(f"Attempt {retries + 1} failed: {error}")
+            time.sleep(delay)
+            retries += 1
+            delay *= 2  # Exponential backoff
+
+    logger.error("Exceeded maximum number of retries to connect to database.")
+    return None
 
 
 def get_recent_hashes(conn):
@@ -51,10 +66,12 @@ def get_recent_hashes(conn):
         with conn.cursor() as cursor:
             # Adjust the interval as needed
             cursor.execute(
-                "SELECT url_hash FROM news_articles WHERE date_created > NOW() - INTERVAL '24 HOURS'"
+                "SELECT url_hash FROM raw_news_articles WHERE "
+                "date_created > NOW() - INTERVAL '24 HOURS'"
             )
             for row in cursor:
                 recent_hashes.add(row[0])
+            logger.info(f"Successfully retrieved {len(recent_hashes)} url hashes")
     except Exception as e:
         logger.error(f"Error fetching recent hashes: {e}")
     return recent_hashes
@@ -130,11 +147,15 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
 
         google_news_url = entry.link
         article_url = get_final_url(google_news_url)
+        if article_url is None:
+            logger.error(f"Failed to resolve final URL for: {google_news_url}")
+            continue
+        
         url_hash = calculate_url_hash(article_url)
 
         if url_hash in recent_hashes:
             logger.info(
-                f"Article with URL {article_url} already exists in the database. Skipping."
+                f"Article already exists in the database. Skipping. URL: {article_url}"
             )
             continue
 
@@ -236,7 +257,7 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
 
 
 def main(feed_url, limit=10000):
-    # Handle the articles, like printing or saving them
+    logger.info(f"{'=' * 30} Start of the log section {'=' * 30}")
     logger.info(
         f"Script execution started with feed URL: {feed_url} and limit: {limit}"
     )
@@ -251,34 +272,34 @@ def main(feed_url, limit=10000):
             logger.info("Executing batch insert into the database")
             # SQL query to insert data
             insert_query = """
-            INSERT INTO 
-                news_articles (
-                    title, 
-                    text, 
-                    publish_date, 
-                    publish_date_source, 
-                    authors, 
-                    canonical_link, 
-                    feed_link, 
-                    media_link, 
-                    media_title, 
-                    is_parsed, 
-                    exception_class, 
+            INSERT INTO
+                raw_news_articles (
+                    title,
+                    text,
+                    publish_date,
+                    publish_date_source,
+                    authors,
+                    canonical_link,
+                    feed_link,
+                    media_link,
+                    media_title,
+                    is_parsed,
+                    exception_class,
                     exception_text,
                     url_hash,
                     date_created)
             VALUES (
-                %(title)s, 
-                %(text)s, 
-                %(publish_date)s, 
-                %(publish_date_source)s, 
-                %(authors)s, 
-                %(canonical_link)s, 
-                %(feed_link)s, 
-                %(media_link)s, 
-                %(media_title)s, 
-                %(is_parsed)s, 
-                %(exception_class)s, 
+                %(title)s,
+                %(text)s,
+                %(publish_date)s,
+                %(publish_date_source)s,
+                %(authors)s,
+                %(canonical_link)s,
+                %(feed_link)s,
+                %(media_link)s,
+                %(media_title)s,
+                %(is_parsed)s,
+                %(exception_class)s,
                 %(exception_text)s,
                 %(url_hash)s,
                 %(date_created)s)
@@ -296,6 +317,7 @@ def main(feed_url, limit=10000):
             logger.info("Database connection closed")
     else:
         logger.error("Failed to establish database connection")
+    logger.info(f"{'^' * 30} End of the log section {'^' * 30}\n")
 
 
 if __name__ == "__main__":
