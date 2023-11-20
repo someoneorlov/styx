@@ -150,7 +150,7 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
         if article_url is None:
             logger.error(f"Failed to resolve final URL for: {google_news_url}")
             continue
-        
+
         url_hash = calculate_url_hash(article_url)
 
         if url_hash in recent_hashes:

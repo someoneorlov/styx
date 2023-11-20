@@ -37,6 +37,63 @@ services:
       db:
         condition: service_healthy
     # command: ["/bin/bash", "-c", "/usr/local/bin/wait-for-it.sh db:5432 -- python /app/src/data/load_new_data.py 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen'"]
+  
+  airflow-webserver:
+    user: "root"
+    image: apache/airflow:2.7.3-python3.10
+    entrypoint: ["/entrypoint.sh"]
+    command: ["webserver"]
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASS}@db/${POSTGRES_DB}
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW_UID=${AIRFLOW_UID}
+      - AIRFLOW_GID=${AIRFLOW_GID}
+      - AIRFLOW_USER=${AIRFLOW_USER}
+      - AIRFLOW_FIRST_NAME=${AIRFLOW_FIRST_NAME}
+      - AIRFLOW_LAST_NAME=${AIRFLOW_LAST_NAME}
+      - AIRFLOW_ROLE=${AIRFLOW_ROLE}
+      - AIRFLOW_EMAIL=${AIRFLOW_EMAIL}
+      - AIRFLOW_PASS=${AIRFLOW_PASS}
+    ports:
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dags:/opt/airflow/dags
+      - ./logs/airflow:/opt/airflow/logs
+      - ./airflow-entrypoint.sh:/entrypoint.sh
+    depends_on:
+      - db
+
+  airflow-scheduler:
+    user: "root"
+    image: apache/airflow:2.7.3-python3.10
+    entrypoint: ["/entrypoint.sh"]
+    command: ["scheduler"]
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASS}@db/${POSTGRES_DB}
+      - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW_UID=${AIRFLOW_UID}
+      - AIRFLOW_GID=${AIRFLOW_GID}
+      - AIRFLOW_USER=${AIRFLOW_USER}
+      - AIRFLOW_FIRST_NAME=${AIRFLOW_FIRST_NAME}
+      - AIRFLOW_LAST_NAME=${AIRFLOW_LAST_NAME}
+      - AIRFLOW_ROLE=${AIRFLOW_ROLE}
+      - AIRFLOW_EMAIL=${AIRFLOW_EMAIL}
+      - AIRFLOW_PASS=${AIRFLOW_PASS}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./dags:/opt/airflow/dags
+      - ./logs/airflow:/opt/airflow/logs
+      - ./airflow-entrypoint.sh:/entrypoint.sh
+    depends_on:
+      - db
 
 volumes:
   db-data:
+
+
+# - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASS}@db/${POSTGRES_DB}
