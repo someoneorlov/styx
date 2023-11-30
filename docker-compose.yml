@@ -39,10 +39,10 @@ services:
     # command: ["/bin/bash", "-c", "/usr/local/bin/wait-for-it.sh db:5432 -- python /app/src/data/load_new_data.py 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US%3Aen'"]
   
   airflow-webserver:
-    user: "root"
     image: apache/airflow:2.7.3-python3.10
-    entrypoint: ["/entrypoint.sh"]
-    command: ["webserver"]
+    user: "airflow"
+    group_add:
+      - 999  # Docker group ID
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASS}@db/${POSTGRES_DB}
@@ -63,14 +63,16 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs/airflow:/opt/airflow/logs
       - ./airflow-entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/entrypoint.sh"]
+    command: ["webserver"]
     depends_on:
-      - db
+      - db 
 
   airflow-scheduler:
-    user: "root"
     image: apache/airflow:2.7.3-python3.10
-    entrypoint: ["/entrypoint.sh"]
-    command: ["scheduler"]
+    user: "airflow"
+    group_add:
+      - 999  # Docker group ID
     environment:
       - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASS}@db/${POSTGRES_DB}
@@ -89,6 +91,8 @@ services:
       - ./dags:/opt/airflow/dags
       - ./logs/airflow:/opt/airflow/logs
       - ./airflow-entrypoint.sh:/entrypoint.sh
+    entrypoint: ["/entrypoint.sh"]
+    command: ["scheduler"]
     depends_on:
       - db
 
