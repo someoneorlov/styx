@@ -44,21 +44,21 @@
 
 
 # Run Airflow specific commands
-if [ "$1" == "webserver" ]; then
-    airflow db migrate
-    airflow users create \
-        --username $AIRFLOW_USER \
-        --firstname $AIRFLOW_FIRST_NAME \
-        --lastname $AIRFLOW_LAST_NAME \
-        --role $AIRFLOW_ROLE \
-        --email $AIRFLOW_EMAIL \
-        --password $AIRFLOW_PASS \
-        || true
-    exec airflow webserver
-elif [ "$1" == "scheduler" ]; then
-    airflow db migrate
-    exec airflow scheduler
-else
-    echo "Unknown role: $1"
-    exit 1
-fi
+# if [ "$1" == "webserver" ]; then
+#     airflow db migrate
+#     airflow users create \
+#         --username $AIRFLOW_USER \
+#         --firstname $AIRFLOW_FIRST_NAME \
+#         --lastname $AIRFLOW_LAST_NAME \
+#         --role $AIRFLOW_ROLE \
+#         --email $AIRFLOW_EMAIL \
+#         --password $AIRFLOW_PASS \
+#         || true
+#     exec airflow webserver
+# elif [ "$1" == "scheduler" ]; then
+#     airflow db migrate
+#     exec airflow scheduler
+# else
+#     echo "Unknown role: $1"
+#     exit 1
+# fi
