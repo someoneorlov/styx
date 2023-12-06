@@ -1,7 +1,9 @@
 #!/bin/bash
 
+CUR_DIR=$(dirname "$0")
+
 # Load .env file
-source "$(dirname "$0")/../.env"
+source "$CUR_DIR/../.env"
 
 # Network check function
 check_network() {
@@ -11,10 +13,10 @@ check_network() {
 
 # Backup file name with date and time
 DATE_TIME=$(date +"%Y%m%d-%H%M%S")
-BACKUP_FILE="/home/ec2-user/yandex_disk/backup-$DATE_TIME.backup"
+BACKUP_FILE="$CUR_DIR/../data/yandex_disk_backup/backup-$DATE_TIME.backup"
 
 # Log file
-LOG_FILE="$(dirname "$0")/../logs/yandex_disk_logfile.log"
+LOG_FILE="$CUR_DIR/../logs/yandex_disk_logfile.log"
 
 # Create a custom-format backup
 PGPASSWORD=$POSTGRES_PASS pg_dump -h localhost -p 5432 -U $POSTGRES_USER -Fc $POSTGRES_DB > $BACKUP_FILE
@@ -45,7 +47,7 @@ fi
 
 # Local backup rotation: keep the last N backups
 MAX_BACKUPS=7
-BACKUP_DIR="/home/ec2-user/yandex_disk"
+BACKUP_DIR="$CUR_DIR/../data/yandex_disk_backup"
 BACKUP_FILES_LOCAL=($(ls -1tr $BACKUP_DIR/backup-*.backup))
 if [ ${#BACKUP_FILES_LOCAL[@]} -gt $MAX_BACKUPS ]; then
     NUM_FILES_TO_DELETE=$((${#BACKUP_FILES_LOCAL[@]} - $MAX_BACKUPS))
