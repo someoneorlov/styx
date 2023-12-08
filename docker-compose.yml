@@ -30,6 +30,14 @@ x-airflow-common:
     DB_NAME: ${DB_NAME}
     DB_USER: ${DB_USER}
     DB_PASS: ${DB_PASS}
+    # AIRFLOW__METRICS__STATSD_ON: 'True'
+    # AIRFLOW__METRICS__STATSD_HOST: statsd-exporter
+    # AIRFLOW__METRICS__STATSD_PORT: 8125
+    # AIRFLOW__METRICS__STATSD_PREFIX: airflow
+    AIRFLOW__SCHEDULER__STATSD_ON: 'True'
+    AIRFLOW__SCHEDULER__STATSD_HOST: statsd-exporter
+    AIRFLOW__SCHEDULER__STATSD_PORT: 8125
+    AIRFLOW__SCHEDULER__STATSD_PREFIX: airflow
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
     - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
@@ -238,6 +246,65 @@ services:
       - -c
       - airflow
 
+  statsd-exporter:
+    image: prom/statsd-exporter
+    container_name: airflow-statsd-exporter
+    command: "--statsd.listen-udp=:8125 --web.listen-address=:9102"
+    ports:
+        - 9123:9102
+        - 8125:8125/udp
+    # depends_on:
+    #   airflow-webserver:
+    #     condition: service_healthy
+    # restart: always
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    ports:
+      - 9187:9187
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@db:5432/${POSTGRES_DB}?sslmode=disable"
+    links:
+      - db
+      - prometheus
+    
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - '9090:9090'
+    depends_on:
+      airflow-webserver:
+        condition: service_healthy
+    #   - airflow-webserver  # Assuming Prometheus will scrape metrics from Airflow
+    restart: always
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    volumes:
+      - grafana-data:/var/lib/grafana
+      # - ./grafana:/etc/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/etc/grafana/dashboards
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports:
+      - '3000:3000'
+    depends_on:
+      - prometheus
+    restart: always
+
+
 volumes:
   db-data:
   postgres-db-volume:
+  prometheus-data:
+  grafana-data:
