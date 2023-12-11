@@ -1,0 +1,15 @@
+FROM apache/airflow:2.7.3-python3.10
+
+# Install git
+USER root
+RUN apt-get update && apt-get install -y git
+
+# Switch back to the airflow user
+USER airflow
+
+# Uninstall the existing airflow-prometheus-exporter plugin
+RUN pip uninstall -y airflow-prometheus-exporter
+
+# Install the forked version of airflow-prometheus-exporter
+RUN pip install git+https://github.com/Openmail/airflow-prometheus-exporter.git@v3.0
+ 
