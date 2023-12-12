@@ -299,6 +299,10 @@ services:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASS}
       GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_DATASOURCES_DEFAULT_NAME: "Prometheus"
+      GF_DATASOURCES_DEFAULT_TYPE: "prometheus"
+      GF_DATASOURCES_DEFAULT_URL: "http://prometheus:9090"
+      GF_DATASOURCES_DEFAULT_ACCESS: "proxy"
     ports:
       - '3000:3000'
     depends_on:
