@@ -288,6 +288,18 @@ services:
     #   - airflow-webserver  # Assuming Prometheus will scrape metrics from Airflow
     restart: always
 
+  # alertmanager:
+  #   image: prom/alertmanager:v0.26.0
+  #   volumes:
+  #     - ./alertmanager:/etc/alertmanager
+  #   command:
+  #     - '--config.file=/etc/alertmanager/alertmanager.yml'
+  #     - '--storage.path=/alertmanager'
+  #   ports:
+  #     - 9093:9093
+  #   depends_on:
+  #     - prometheus
+
   grafana:
     image: grafana/grafana:10.2.2
     volumes:

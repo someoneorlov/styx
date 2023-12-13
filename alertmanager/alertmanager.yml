@@ -1,0 +1,20 @@
+global:
+  # Global configurations (e.g., SMTP settings for email)
+
+route:
+  group_by: ['alertname', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'default-receiver'
+  routes:
+    - match:
+        severity: 'critical'
+      receiver: 'critical-receiver'
+
+receivers:
+- name: 'default-receiver'
+  # Configurations for the default receiver (e.g., email, Slack channel)
+
+- name: 'critical-receiver'
+  # Configurations for critical alerts (e.g., PagerDuty, SMS notifications)

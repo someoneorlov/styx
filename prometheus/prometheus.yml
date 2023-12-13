@@ -23,3 +23,12 @@ scrape_configs:
       - targets: ['172.31.16.4:9100']
     tls_config:
       insecure_skip_verify: true
+
+# rule_files:
+#   - "./alert.rules.yml"
+
+# alerting:
+#   alertmanagers:
+#   - static_configs:
+#     - targets:
+#       - 'alertmanager:9093'

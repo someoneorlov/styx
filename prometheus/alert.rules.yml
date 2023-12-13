@@ -1,0 +1,47 @@
+- alert: HighCPUUsage
+  expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+  for: 5m
+  labels:
+    severity: critical
+  annotations:
+    summary: High CPU usage detected
+    description: CPU usage is above 85% for more than 5 minutes.
+
+- alert: LowMemory
+  expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100 < 15
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: Low memory detected
+    description: Available memory is below 15%.
+
+- alert: HighDiskUsage
+  expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 5
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: High disk usage detected
+    description: Disk usage on root partition is above 95%.
+
+- alert: HighDiskIO
+  expr: rate(node_disk_io_time_seconds_total[5m]) > 0.0001
+  for: 5m
+  labels:
+    severity: warning
+  annotations:
+    summary: High Disk I/O detected
+    description: Disk I/O utilization is above 0.01%.
+
+- alert: AbnormalNetworkThroughput
+  expr: (
+    rate(node_network_receive_bytes_total[5m]) > (200 * 1024 * 1024) or
+    rate(node_network_receive_bytes_total[5m]) < (80 * 1024 * 1024)
+  )
+  for: 10m
+  labels:
+    severity: warning
+  annotations:
+    summary: Unusual network throughput detected
+    description: Network throughput is unusually high (above 200 MiB) or low (below 80 MiB).
