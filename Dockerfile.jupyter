@@ -1,0 +1,9 @@
+FROM quay.io/jupyter/pytorch-notebook:python-3.11
+
+USER root
+
+COPY requirements/req_load_new_data.txt /requirements/
+
+RUN pip install --no-cache-dir -r /requirements/req_load_new_data.txt
+
+USER jovyan

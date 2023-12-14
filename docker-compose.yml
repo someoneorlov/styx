@@ -250,7 +250,7 @@ services:
       - airflow
 
   statsd-exporter:
-    image: prom/statsd-exporter
+    image: prom/statsd-exporter:v0.26.0
     container_name: airflow-statsd-exporter
     command: "--statsd.listen-udp=:8125 --web.listen-address=:9102"
     ports:
@@ -262,7 +262,7 @@ services:
     # restart: always
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter
+    image: prometheuscommunity/postgres-exporter:v0.15.0
     ports:
       - 9187:9187
     environment:
@@ -321,6 +321,36 @@ services:
       - prometheus
     restart: always
 
+  jupyterlab:
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      JUPYTER_ENABLE_LAB: 'yes'
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+    volumes:
+      - ./data/external:/home/jovyan/data/external:ro
+      - ./data/postgres_data:/home/jovyan/data/postgres_data:ro
+      - ./data/REL:/home/jovyan/data/REL:ro
+      - ./data/interim:/home/jovyan/data/interim:rw
+      - ./notebooks:/home/jovyan/notebooks:rw
+    ports:
+      - "8888:8888"
+
+  # rel:
+  #   image: informagi/rel:docker_build2-f2845be
+  #   volumes:
+  #     - ./data/REL:/workspace/data:ro
+  #   ports:
+  #     - "5555:5555"
+  #   command: python -m REL.server --bind 0.0.0.0 --port 5555 /workspace/data wiki_2019
+  #   tty: true
+  #   stdin_open: true
 
 volumes:
   db-data:
