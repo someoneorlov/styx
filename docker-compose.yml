@@ -342,15 +342,15 @@ services:
     ports:
       - "8888:8888"
 
-  # rel:
-  #   image: informagi/rel:docker_build2-f2845be
-  #   volumes:
-  #     - ./data/REL:/workspace/data:ro
-  #   ports:
-  #     - "5555:5555"
-  #   command: python -m REL.server --bind 0.0.0.0 --port 5555 /workspace/data wiki_2019
-  #   tty: true
-  #   stdin_open: true
+  rel:
+    image: informagi/rel:docker_build2-f2845be
+    volumes:
+      - ./data/REL:/workspace/data:ro
+    ports:
+      - "5555:5555"
+    command: python -m REL.server --bind 0.0.0.0 --port 5555 /workspace/data wiki_2019
+    tty: true
+    stdin_open: true
 
 volumes:
   db-data:
