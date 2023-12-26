@@ -18,6 +18,9 @@ BEGIN
             exception_class TEXT,
             exception_text TEXT, 
             url_hash VARCHAR(64),
+            canonical_link_hash VARCHAR(64),
+            feed_link_hash VARCHAR(64),
+            title_hash VARCHAR(64),
             date_created TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
     END IF;

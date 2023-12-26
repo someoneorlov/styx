@@ -59,19 +59,21 @@ def connect_to_db(
     return None
 
 
-def get_recent_hashes(conn):
-    """Fetch recent URL hashes from the database."""
-    recent_hashes = set()
+def get_recent_hashes(conn, hash_field_names):
+    """Fetch recent hashes from the database."""
+    recent_hashes = dict()
     try:
         with conn.cursor() as cursor:
-            # Adjust the interval as needed
-            cursor.execute(
-                "SELECT url_hash FROM raw_news_articles WHERE "
-                "date_created > NOW() - INTERVAL '24 HOURS'"
-            )
-            for row in cursor:
-                recent_hashes.add(row[0])
-            logger.info(f"Successfully retrieved {len(recent_hashes)} url hashes")
+            for field_name in hash_field_names:
+                if field_name not in recent_hashes:
+                    recent_hashes[field_name] = set()
+                    query = f"""SELECT {field_name} 
+                            FROM raw_news_articles 
+                            WHERE date_created > NOW() - INTERVAL '30 DAYS'"""
+                    cursor.execute(query)
+                    for row in cursor:
+                        recent_hashes[field_name].add(row[0])
+                    logger.info(f"Successfully retrieved {len(recent_hashes[field_name])} {field_name}")
     except Exception as e:
         logger.error(f"Error fetching recent hashes: {e}")
     return recent_hashes
@@ -119,9 +121,9 @@ def download_article(url):
     return None
 
 
-def calculate_url_hash(url):
+def calculate_hash(field):
     """Calculate and return the SHA-256 hash of the given URL."""
-    return hashlib.sha256(url.encode()).hexdigest()
+    return hashlib.sha256(field.encode()).hexdigest()
 
 
 def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
@@ -151,9 +153,15 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
             logger.error(f"Failed to resolve final URL for: {google_news_url}")
             continue
 
-        url_hash = calculate_url_hash(article_url)
+        feed_link_hash = calculate_hash(google_news_url)
+        if feed_link_hash in recent_hashes['feed_link_hash']:
+            logger.info(
+                f"Article already exists in the database. Skipping. Feed link URL: {google_news_url}"
+            )
+            continue
 
-        if url_hash in recent_hashes:
+        url_hash = calculate_hash(article_url)
+        if url_hash in recent_hashes['url_hash']:
             logger.info(
                 f"Article already exists in the database. Skipping. URL: {article_url}"
             )
@@ -173,6 +181,9 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
             "exception_class": None,
             "exception_text": None,
             "url_hash": url_hash,
+            "canonical_link_hash": None,
+            "feed_link_hash": feed_link_hash,
+            "title_hash": None,
             "date_created": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
 
@@ -214,6 +225,21 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
                     "Essential fields are empty, possibly due to "
                     "bot protection or bad parse"
                 )
+            
+            canonical_link_hash = calculate_hash(article.canonical_link)
+            if canonical_link_hash in recent_hashes['canonical_link_hash']:
+                logger.info(
+                    "Article already exists in the database. Skipping. "
+                    f"Canonical link URL: {article.canonical_link}"
+                )
+                continue
+
+            title_hash = calculate_hash(article.title)
+            if title_hash in recent_hashes['title_hash']:
+                logger.info(
+                    f"Article already exists in the database. Skipping. title: {article.title}"
+                )
+                continue
 
             publish_date = article.publish_date
             publish_date_source = "parsed"
@@ -236,6 +262,8 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
                     "publish_date_source": publish_date_source,
                     "authors": article.authors,
                     "canonical_link": article.canonical_link,
+                    "canonical_link_hash": canonical_link_hash,
+                    "title_hash": title_hash,
                     "is_parsed": True,
                 }
             )
@@ -261,10 +289,11 @@ def main(feed_url, limit=10000):
     logger.info(
         f"Script execution started with feed URL: {feed_url} and limit: {limit}"
     )
+    hash_field_names = ['url_hash', 'canonical_link_hash', 'feed_link_hash', 'title_hash']
     conn = connect_to_db()
     if conn is not None:
         logger.info("Connected to the database successfully")
-        recent_hashes = get_recent_hashes(conn)
+        recent_hashes = get_recent_hashes(conn, hash_field_names)
         articles = scrape_news_from_feed(feed_url, recent_hashes, limit)
         try:
             cursor = conn.cursor()
@@ -287,6 +316,9 @@ def main(feed_url, limit=10000):
                     exception_class,
                     exception_text,
                     url_hash,
+                    canonical_link_hash,
+                    feed_link_hash,
+                    title_hash,
                     date_created)
             VALUES (
                 %(title)s,
@@ -302,6 +334,9 @@ def main(feed_url, limit=10000):
                 %(exception_class)s,
                 %(exception_text)s,
                 %(url_hash)s,
+                %(canonical_link_hash)s,
+                %(feed_link_hash)s,
+                %(title_hash)s,
                 %(date_created)s)
             """
             execute_batch(cursor, insert_query, articles)
