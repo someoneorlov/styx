@@ -128,8 +128,8 @@ services:
 
   scraper:
     build:
-      context: .
-      dockerfile: Dockerfile.scraping
+      context: styx_app/scraper_service
+      dockerfile: Dockerfile
     image: styx_scraper_img
     environment:
       DB_HOST: db

@@ -40,7 +40,7 @@ with DAG(
         command=[
             "/bin/sh",
             "-c",
-            "python /app/src/data/load_new_data.py ${SCRAPER_URL}",
+            "python /app/src/load_new_data.py ${SCRAPER_URL}",
         ],
         docker_url="unix://var/run/docker.sock",
         network_mode="styx_default",
