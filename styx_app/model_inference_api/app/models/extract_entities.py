@@ -5,26 +5,20 @@ def extract_salient_entities(
     data: list,
     API_URL: str = "http://rel:5555/api",
     title: str = "title",
-    article: str = "article",
+    article: str = "text",
     id: str = "id",
 ):
-
     annotated_articles = []
 
     for row in data:
-
         if len(row[title].split()) > 3300 or len(row[article].split()) > 3300:
             continue
 
         # Perform mention detection on headline and body text
-        el_title = requests.post(API_URL, json={
-            "text": row[title],
-            "spans": []
-        }).json()
-        el_article = requests.post(API_URL, json={
-            "text": row[article],
-            "spans": []
-        }).json()
+        el_title = requests.post(API_URL, json={"text": row[title], "spans": []}).json()
+        el_article = requests.post(
+            API_URL, json={"text": row[article], "spans": []}
+        ).json()
 
         # Filter mentions with the ORG tag
         headline_mentions_org = [
@@ -47,8 +41,8 @@ def extract_salient_entities(
                 [entity[3] for entity in salient_entities_org]
             )
         else:
-            salient_entities_org_set = {'None'}
-            
+            salient_entities_org_set = {"None"}
+
         # Save the annotated article
         annotated_articles.append(
             {

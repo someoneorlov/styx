@@ -1,3 +1,4 @@
+import os
 import json
 
 from fastapi import APIRouter, HTTPException
@@ -12,13 +13,14 @@ class ArticleInput(BaseModel):
 
 
 router = APIRouter()
-API_URL = "http://rel:5555/api"
+API_URL = os.getenv("REL_API_URL", "http://rel:5555/api")
 
 
 @router.post("/extract_entities")
 async def perform_ner(input: ArticleInput):
     try:
-        articles = json.loads(input.articles)
+        # articles = json.loads(input.articles)
+        articles = input.articles
         # Validate that articles is a list of dicts
         if not isinstance(articles, List) or not all(
             isinstance(article, Dict) for article in articles
