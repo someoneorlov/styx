@@ -143,6 +143,16 @@ services:
       db:
         condition: service_healthy
 
+  inference_api:
+    build:
+        context: styx_app/model_inference_api
+        dockerfile: Dockerfile
+    image: inference_api_img
+    environment:
+      REL_API_URL: ${REL_API_URL}
+    ports:
+      - "8001:8001"
+
   airflow-triggerer:
     <<: *airflow-common
     command: triggerer

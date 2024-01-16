@@ -12,14 +12,11 @@ def load_test_data():
 
 def test_ner_extraction():
     test_data = load_test_data()
-    sample_articles = json.dumps(test_data["sample_articles"])
-
-    # Make a POST request to the NER endpoint
-    response = client.post("/ner/extract_entities", json={"articles": sample_articles})
+    response = client.post(
+        "/ner/extract_entities", json={"articles": test_data["sample_articles"]}
+    )
     # Get the JSON response
     data = response.json()
-
-    print(data)
 
     # Assertions
     assert response.status_code == 200

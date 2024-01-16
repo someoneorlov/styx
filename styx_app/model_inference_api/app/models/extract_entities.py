@@ -11,6 +11,8 @@ def extract_salient_entities(
     annotated_articles = []
 
     for row in data:
+        row = row.dict()
+
         if len(row[title].split()) > 3300 or len(row[article].split()) > 3300:
             continue
 

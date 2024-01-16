@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes.extract_entities_routes import router as ner_router
+from .routes.extract_entities_routes import router as extract_entities
 
 # Create FastAPI app instance
 app = FastAPI()
@@ -15,6 +15,4 @@ app.add_middleware(
 )
 
 # Include routers (API endpoints)
-app.include_router(ner_router, prefix="/ner", tags=["NER"])
-
-# You can add more routers as your application grows
+app.include_router(extract_entities, prefix="/ner", tags=["NER"])
