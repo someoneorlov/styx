@@ -1,8 +1,7 @@
 import json
-from fastapi.testclient import TestClient
-from ..app.main import app
+import requests
 
-client = TestClient(app)
+API_BASE_URL = "http://localhost:8001"
 
 
 def load_test_data():
@@ -12,11 +11,13 @@ def load_test_data():
 
 def test_ner_extraction():
     test_data = load_test_data()
-    response = client.post(
-        "/ner/extract_entities", json={"articles": test_data["sample_articles"]}
+    response = requests.post(
+        f"{API_BASE_URL}/ner-inf/extract_entities",
+        json={"articles": test_data["sample_articles"]},
     )
     # Get the JSON response
     data = response.json()
+    print(data)
 
     # Assertions
     assert response.status_code == 200
@@ -31,8 +32,8 @@ def test_ner_extraction():
 
 
 def test_ner_with_invalid_data():
-    response = client.post(
-        "/ner/extract_entities",
+    response = requests.post(
+        f"{API_BASE_URL}/ner-inf/extract_entities",
         json={"articles": "invalid data format"},  # intentionally incorrect format
     )
     assert (

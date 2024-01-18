@@ -49,8 +49,6 @@ def extract_salient_entities(
         annotated_articles.append(
             {
                 "raw_news_id": row[id],
-                # "headline": row[title],
-                # "body_text": row[article],
                 "headline_mentions": el_title,
                 "body_text_mentions": el_article,
                 "salient_entities_org": salient_entities_org,

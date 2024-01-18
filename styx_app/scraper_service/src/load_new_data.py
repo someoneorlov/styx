@@ -20,7 +20,7 @@ log_file_path = "/var/log/load_new_data.log"
 
 # Set up a rotating log handler (5 MB per file, keep 3 backup)
 handler = RotatingFileHandler(log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
 logger = logging.getLogger(__name__)
@@ -29,8 +29,14 @@ logger.addHandler(handler)
 
 
 def connect_to_db(
-        db_name=None, db_user=None, db_pass=None, db_host=None, db_port="5432",
-        max_retries=5, initial_delay=5):
+    db_name=None,
+    db_user=None,
+    db_pass=None,
+    db_host=None,
+    db_port="5432",
+    max_retries=5,
+    initial_delay=5,
+):
     """Connect to the PostgreSQL database server with exponential backoff retries."""
     # Use environment variables as defaults
     db_name = db_name or os.getenv("DB_NAME", "default_db_name")
@@ -44,8 +50,11 @@ def connect_to_db(
     while retries < max_retries:
         try:
             conn = psycopg2.connect(
-                dbname=db_name, user=db_user, password=db_pass,
-                host=db_host, port=db_port
+                dbname=db_name,
+                user=db_user,
+                password=db_pass,
+                host=db_host,
+                port=db_port,
             )
             logger.info("Database connection established.")
             return conn
@@ -73,7 +82,9 @@ def get_recent_hashes(conn, hash_field_names):
                     cursor.execute(query)
                     for row in cursor:
                         recent_hashes[field_name].add(row[0])
-                    logger.info(f"Successfully retrieved {len(recent_hashes[field_name])} {field_name}")
+                    logger.info(
+                        f"Successfully retrieved {len(recent_hashes[field_name])} {field_name}"
+                    )
     except Exception as e:
         logger.error(f"Error fetching recent hashes: {e}")
     return recent_hashes
@@ -154,14 +165,14 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
             continue
 
         feed_link_hash = calculate_hash(google_news_url)
-        if feed_link_hash in recent_hashes['feed_link_hash']:
+        if feed_link_hash in recent_hashes["feed_link_hash"]:
             logger.info(
                 f"Article already exists in the database. Skipping. Feed link URL: {google_news_url}"
             )
             continue
 
         url_hash = calculate_hash(article_url)
-        if url_hash in recent_hashes['url_hash']:
+        if url_hash in recent_hashes["url_hash"]:
             logger.info(
                 f"Article already exists in the database. Skipping. URL: {article_url}"
             )
@@ -225,9 +236,9 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
                     "Essential fields are empty, possibly due to "
                     "bot protection or bad parse"
                 )
-            
+
             canonical_link_hash = calculate_hash(article.canonical_link)
-            if canonical_link_hash in recent_hashes['canonical_link_hash']:
+            if canonical_link_hash in recent_hashes["canonical_link_hash"]:
                 logger.info(
                     "Article already exists in the database. Skipping. "
                     f"Canonical link URL: {article.canonical_link}"
@@ -235,7 +246,7 @@ def scrape_news_from_feed(feed_url, recent_hashes, limit=10000):
                 continue
 
             title_hash = calculate_hash(article.title)
-            if title_hash in recent_hashes['title_hash']:
+            if title_hash in recent_hashes["title_hash"]:
                 logger.info(
                     f"Article already exists in the database. Skipping. title: {article.title}"
                 )
@@ -289,7 +300,12 @@ def main(feed_url, limit=10000):
     logger.info(
         f"Script execution started with feed URL: {feed_url} and limit: {limit}"
     )
-    hash_field_names = ['url_hash', 'canonical_link_hash', 'feed_link_hash', 'title_hash']
+    hash_field_names = [
+        "url_hash",
+        "canonical_link_hash",
+        "feed_link_hash",
+        "title_hash",
+    ]
     conn = connect_to_db()
     if conn is not None:
         logger.info("Connected to the database successfully")
