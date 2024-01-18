@@ -1,0 +1,13 @@
+FROM postgres:16.0
+
+# Install gettext for envsubst
+RUN apt-get update && apt-get install -y gettext-base
+
+# Copy initialization scripts
+COPY --chmod=700 ./init_db_prod/* /docker-entrypoint-initdb.d/
+
+# Change ownership to postgres user (user ID 999)
+RUN chown -R 999:999 /docker-entrypoint-initdb.d/
+
+# Adjust permissions for the initdb directory
+RUN chmod -R 700 /docker-entrypoint-initdb.d/
