@@ -1,9 +1,9 @@
 DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT FROM pg_roles WHERE rolname = 'scraping_user'
+        SELECT FROM pg_roles WHERE rolname = '${DB_USER}'
     ) THEN
-        CREATE ROLE scraping_user WITH LOGIN PASSWORD '${DB_PASS}';
+        CREATE ROLE ${DB_USER} WITH LOGIN PASSWORD '${DB_PASS}';
     END IF;
 END
 $$;

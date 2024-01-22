@@ -27,7 +27,7 @@ x-airflow-common:
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     # _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     SCRAPER_URL: ${SCRAPER_URL}
-    DB_NAME: ${DB_NAME}
+    DB_NAME: ${POSTGRES_DB}
     DB_USER: ${DB_USER}
     DB_PASS: ${DB_PASS}
     # AIRFLOW__METRICS__STATSD_ON: 'True'
@@ -154,7 +154,7 @@ services:
     image: styx_scraper_img
     environment:
       DB_HOST: db
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${POSTGRES_DB}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       SCRAPER_URL: ${SCRAPER_URL}
@@ -359,7 +359,7 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: 5432
-      DB_NAME: ${DB_NAME}
+      DB_NAME: ${POSTGRES_DB}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       JUPYTER_ENABLE_LAB: 'yes'

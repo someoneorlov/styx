@@ -20,7 +20,7 @@ log_file_path = "./update_data.log"
 
 # Set up a rotating log handler (5 MB per file, keep 3 backup)
 handler = RotatingFileHandler(log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3)
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 
 logger = logging.getLogger(__name__)
@@ -29,8 +29,14 @@ logger.addHandler(handler)
 
 
 def connect_to_db(
-        db_name=None, db_user=None, db_pass=None, db_host=None, db_port="5432",
-        max_retries=5, initial_delay=5):
+    db_name=None,
+    db_user=None,
+    db_pass=None,
+    db_host=None,
+    db_port="5432",
+    max_retries=5,
+    initial_delay=5,
+):
     """Connect to the PostgreSQL database server with exponential backoff retries."""
     # Use environment variables as defaults
     db_name = db_name or os.getenv("DB_NAME", "default_db_name")
@@ -44,8 +50,11 @@ def connect_to_db(
     while retries < max_retries:
         try:
             conn = psycopg2.connect(
-                dbname=db_name, user=db_user, password=db_pass,
-                host=db_host, port=db_port
+                dbname=db_name,
+                user=db_user,
+                password=db_pass,
+                host=db_host,
+                port=db_port,
             )
             logger.info("Database connection established.")
             return conn
@@ -70,26 +79,35 @@ def update_hashes_in_database(conn):
         update_cursor = conn.cursor()
 
         # Count rows that need hash updates
-        select_cursor.execute("SELECT COUNT(*) FROM raw_news_articles WHERE feed_link_hash IS NULL OR title_hash IS NULL OR canonical_link_hash IS NULL")
+        select_cursor.execute(
+            "SELECT COUNT(*) FROM raw_news_articles WHERE feed_link_hash IS NULL OR title_hash IS NULL OR canonical_link_hash IS NULL"
+        )
         count = select_cursor.fetchone()[0]
         logger.info(f"Num rows {count}")
 
         # Select rows that need hash updates
-        select_cursor.execute("SELECT id, feed_link, title, canonical_link FROM raw_news_articles WHERE feed_link_hash IS NULL OR title_hash IS NULL OR canonical_link_hash IS NULL")
+        select_cursor.execute(
+            "SELECT id, feed_link, title, canonical_link FROM raw_news_articles WHERE feed_link_hash IS NULL OR title_hash IS NULL OR canonical_link_hash IS NULL"
+        )
         rows_to_update = select_cursor.fetchall()
 
         for row in rows_to_update:
             id, feed_link, title, canonical_link = row
             feed_link_hash = calculate_hash(feed_link) if feed_link else None
             title_hash = calculate_hash(title) if title else None
-            canonical_link_hash = calculate_hash(canonical_link) if canonical_link else None
+            canonical_link_hash = (
+                calculate_hash(canonical_link) if canonical_link else None
+            )
 
             # Update the row with new hash values
-            update_cursor.execute("""
+            update_cursor.execute(
+                """
                 UPDATE raw_news_articles
                 SET feed_link_hash = %s, title_hash = %s, canonical_link_hash = %s
                 WHERE id = %s
-            """, (feed_link_hash, title_hash, canonical_link_hash, id))
+            """,
+                (feed_link_hash, title_hash, canonical_link_hash, id),
+            )
 
         conn.commit()
         select_cursor.close()
@@ -107,9 +125,7 @@ def main():
         logger.info("Connected to the database successfully")
         try:
             update_hashes_in_database(conn)
-            logger.info(
-                f"Successfully updated articles into the database"
-            )
+            logger.info(f"Successfully updated articles into the database")
         except (Exception, psycopg2.DatabaseError) as error:
             logger.error(f"Error while inserting into PostgreSQL: {error}")
         finally:

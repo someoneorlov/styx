@@ -23,7 +23,6 @@ with DAG(
     schedule_interval="5 * * * *",
     catchup=False,
 ) as dag:
-
     t1 = DockerOperator(
         task_id="run_scrap_container",
         image="styx_scraper_img",
