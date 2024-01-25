@@ -23,13 +23,12 @@ BEGIN
             title_hash VARCHAR(64),
             date_created TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
         );
+        ALTER TABLE raw_news_articles 
+        ALTER COLUMN text DROP NOT NULL,
+        ALTER COLUMN publish_date DROP NOT NULL,
+        ALTER COLUMN publish_date_source DROP NOT NULL,
+        ALTER COLUMN authors DROP NOT NULL,
+        ALTER COLUMN canonical_link DROP NOT NULL;
     END IF;
 END
 $$;
-
-ALTER TABLE raw_news_articles 
-ALTER COLUMN text DROP NOT NULL,
-ALTER COLUMN publish_date DROP NOT NULL,
-ALTER COLUMN publish_date_source DROP NOT NULL,
-ALTER COLUMN authors DROP NOT NULL,
-ALTER COLUMN canonical_link DROP NOT NULL;

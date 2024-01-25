@@ -32,4 +32,4 @@ for template in $template_dir/*.sql.template; do
 done
 
 # Execute Flyway command
-/flyway/flyway
+/flyway/flyway -url=jdbc:postgresql://db_test:5432/${POSTGRES_DB} -user=${DB_USER} -password=${DB_PASS} migrate

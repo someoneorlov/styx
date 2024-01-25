@@ -1,0 +1,28 @@
+# Use the official Flyway image as a base
+FROM flyway/flyway:10.5
+
+# Install gettext for envsubst
+USER root
+RUN apt-get update && apt-get install -y gettext-base
+
+# Create a new user for running the scripts
+RUN useradd -m flywayuser
+
+# Create the directory and set proper permissions
+RUN mkdir -p /flyway/sql && chown -R flywayuser:flywayuser /flyway/sql
+
+# Switch to the new user
+USER flywayuser
+
+# Copy both test and production migration templates
+COPY --chown=flywayuser:flywayuser ./sql/templates/test /flyway/templates/test
+COPY --chown=flywayuser:flywayuser ./sql/templates/prod /flyway/templates/prod
+
+# Copy the preprocessing script
+COPY --chown=flywayuser:flywayuser ./scripts/templates_to_sql.sh /flyway
+
+# Set the correct permissions for the script
+RUN chmod +x /flyway/templates_to_sql.sh
+
+# Set the entrypoint to run the preprocessing script and then Flyway
+ENTRYPOINT ["/flyway/templates_to_sql.sh"]
