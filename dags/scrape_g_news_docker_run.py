@@ -30,7 +30,7 @@ with DAG(
         api_version="auto",
         auto_remove=True,
         environment={
-            "DB_HOST": "db",
+            "DB_HOST": "db_prod",
             "DB_NAME": os.getenv("DB_NAME", "default_db_name_inside"),
             "DB_USER": os.getenv("DB_USER", "default_db_user_inside"),
             "DB_PASS": os.getenv("DB_PASS", "default_db_password_inside"),

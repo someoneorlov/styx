@@ -19,7 +19,7 @@ BACKUP_FILE="$CUR_DIR/../data/yandex_disk_backup/backup-$DATE_TIME.backup"
 LOG_FILE="$CUR_DIR/../logs/yandex_disk_logfile.log"
 
 # Create a custom-format backup
-PGPASSWORD=$POSTGRES_PASS pg_dump -h localhost -p 5432 -U $POSTGRES_USER -Fc $POSTGRES_DB > $BACKUP_FILE
+PGPASSWORD=$POSTGRES_PASS_PROD pg_dump -h localhost -p 5432 -U $POSTGRES_USER_PROD -Fc $POSTGRES_DB_PROD > $BACKUP_FILE
 
 # Check network connectivity
 if ! check_network; then

@@ -27,9 +27,9 @@ x-airflow-common:
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     # _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     SCRAPER_URL: ${SCRAPER_URL}
-    DB_NAME: ${POSTGRES_DB}
-    DB_USER: ${DB_USER}
-    DB_PASS: ${DB_PASS}
+    DB_NAME: ${POSTGRES_DB_PROD}
+    DB_USER: ${DB_USER_PROD}
+    DB_PASS: ${DB_PASS_PROD}
     # AIRFLOW__METRICS__STATSD_ON: 'True'
     # AIRFLOW__METRICS__STATSD_HOST: statsd-exporter
     # AIRFLOW__METRICS__STATSD_PORT: 8125
@@ -51,7 +51,7 @@ x-airflow-common:
     &airflow-common-depends-on
     postgres:
       condition: service_healthy
-    db:
+    db_prod:
       condition: service_healthy
 
 services:
@@ -70,22 +70,22 @@ services:
       start_period: 5s
     restart: always
     
-  db:
+  db_prod:
     build: 
       context: .
       dockerfile: Dockerfile.postgres.prod
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASS}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      POSTGRES_DB: ${POSTGRES_DB_PROD}
+      POSTGRES_USER: ${POSTGRES_USER_PROD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS_PROD}
+      DB_USER: ${DB_USER_PROD}
+      DB_PASS: ${DB_PASS_PROD}
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - db-data-prod:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER_PROD} -d ${POSTGRES_DB_PROD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -116,21 +116,24 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile.flyway
+    image: styx_flyway:prod
     environment:
       ENVIRONMENT: prod
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASS}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      POSTGRES_DB: ${POSTGRES_DB_PROD}
+      POSTGRES_USER: ${POSTGRES_USER_PROD}
+      POSTGRES_PASSWORD: ${POSTGRES_PASS_PROD}
+      DB_USER: ${DB_USER_PROD}
+      DB_PASS: ${DB_PASS_PROD}
+      DB_PORT: 5432
     depends_on:
-      db:
+      db_prod:
         condition: service_healthy
 
   flyway_test:
     build: 
       context: .
       dockerfile: Dockerfile.flyway
+    image: styx_flyway:test
     environment:
       ENVIRONMENT: test
       POSTGRES_DB: ${POSTGRES_DB_TEST}
@@ -138,6 +141,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASS_TEST}
       DB_USER: ${DB_USER_TEST}
       DB_PASS: ${DB_PASS_TEST}
+      DB_PORT: 5432
+    command: tail -f /dev/null
     depends_on:
       db_test:
         condition: service_healthy
@@ -183,15 +188,15 @@ services:
       dockerfile: Dockerfile
     image: styx_scraper_img
     environment:
-      DB_HOST: db
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_HOST: db_prod
+      DB_NAME: ${POSTGRES_DB_PROD}
+      DB_USER: ${DB_USER_PROD}
+      DB_PASS: ${DB_PASS_PROD}
       SCRAPER_URL: ${SCRAPER_URL}
     volumes:
       - ./logs:/var/log
     depends_on:
-      db:
+      db_prod:
         condition: service_healthy
 
   inference_api:
@@ -327,9 +332,9 @@ services:
     ports:
       - 9187:9187
     environment:
-      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@db:5432/${POSTGRES_DB}?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER_PROD}:${POSTGRES_PASS_PROD}@db_prod:5432/${POSTGRES_DB_PROD}?sslmode=disable"
     links:
-      - db
+      - db_prod
       - prometheus
     
   prometheus:
@@ -387,11 +392,11 @@ services:
       context: .
       dockerfile: Dockerfile.jupyter
     environment:
-      DB_HOST: db
+      DB_HOST: db_prod
       DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_NAME: ${POSTGRES_DB_PROD}
+      DB_USER: ${DB_USER_PROD}
+      DB_PASS: ${DB_PASS_PROD}
       JUPYTER_ENABLE_LAB: 'yes'
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
     volumes:
@@ -414,7 +419,7 @@ services:
     stdin_open: true
 
 volumes:
-  db-data:
+  db-data-prod:
   db-data-test:
   postgres-db-volume:
   prometheus-data:
