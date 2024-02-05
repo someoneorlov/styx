@@ -1,7 +1,11 @@
 from typing import List
 from fastapi import APIRouter, HTTPException
 from ..models import NERNewsBatch, NERInferenceResultBatch
-from .database import get_unprocessed_news, mark_news_as_processed, save_ner_results
+from ..services.ner_data_services.py import (
+    get_unprocessed_news,
+    mark_news_as_processed,
+    save_ner_results,
+)
 
 router = APIRouter()
 

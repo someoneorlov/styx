@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List
 
-from ..models.extract_entities import extract_salient_entities
+from ..services.extract_entities import extract_salient_entities
 
 
 class Article(BaseModel):
