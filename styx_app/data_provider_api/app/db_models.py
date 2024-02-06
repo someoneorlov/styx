@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ARRAY, Text
+from sqlalchemy import Column, Integer, String, Boolean, ARRAY, Text, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import TIMESTAMP
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -24,6 +26,21 @@ class RawNewsArticle(Base):
     canonical_link_hash = Column(String(64))
     feed_link_hash = Column(String(64))
     title_hash = Column(String(64))
-    date_created = Column(TIMESTAMP(timezone=False), server_default="CURRENT_TIMESTAMP")
-    # Add the is_processed_ner column if it's part of your application logic
+    date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
     is_processed_ner = Column(Boolean, default=False)
+    ner_results = relationship(
+        "NerResults", back_populates="raw_news_article"
+    )  # Relationship to NerResults
+
+
+class NerResults(Base):
+    __tablename__ = "ner_results"
+    id = Column(Integer, primary_key=True)
+    raw_news_article_id = Column(
+        Integer, ForeignKey("raw_news_articles.id"), nullable=False
+    )
+    entities = Column(JSON)
+    date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    raw_news_article = relationship(
+        "RawNewsArticle", back_populates="ner_results"
+    )  # Back-reference

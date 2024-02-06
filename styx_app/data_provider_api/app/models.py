@@ -36,3 +36,7 @@ class NERInferenceResult(BaseModel):
 
 class NERInferenceResultBatch(BaseModel):
     ner_inference_results: List[NERInferenceResult]
+
+
+class NewsIDs(BaseModel):
+    news_ids: List[int]

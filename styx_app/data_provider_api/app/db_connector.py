@@ -1,11 +1,12 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 import os
-from logging import getLogger
 from time import sleep
 from sqlalchemy.exc import OperationalError
+from ...logging_config import setup_logger
 
-logger = getLogger(__name__)
+
+logger = setup_logger(__name__)
 
 
 def get_engine(max_retries=5, initial_delay=5):
@@ -15,24 +16,21 @@ def get_engine(max_retries=5, initial_delay=5):
         user = os.getenv("DB_USER_PROD")
         password = os.getenv("DB_PASS_PROD")
         db = os.getenv("POSTGRES_DB_PROD")
-    else:  # default to test credentials
+    else:
         user = os.getenv("DB_USER_TEST")
         password = os.getenv("DB_PASS_TEST")
         db = os.getenv("POSTGRES_DB_TEST")
 
     host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
+    port = os.getenv("DB_PORT", "5433")
     DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{db}"
     retries = 0
     delay = initial_delay
 
     while retries < max_retries:
         try:
-            engine = create_engine(
-                DATABASE_URL, pool_pre_ping=True, echo=True, future=True
-            )
-            # Try to connect by executing a simple select statement
-            with engine.connect() as conn:
+            engine = create_engine(DATABASE_URL, pool_pre_ping=True, echo=True)
+            with engine.begin() as conn:
                 conn.execute("SELECT 1")
             logger.info("Database connection established.")
             return engine
@@ -46,7 +44,6 @@ def get_engine(max_retries=5, initial_delay=5):
 
 
 def session_factory(engine):
-    """Create a session factory that will use the given engine."""
     if engine is not None:
         SessionLocal = scoped_session(
             sessionmaker(autocommit=False, autoflush=False, bind=engine)
