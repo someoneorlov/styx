@@ -12,16 +12,14 @@ router = APIRouter()
 
 
 @router.get("/ner_unprocessed_news", response_model=NERNewsBatch)
-async def fetch_unprocessed_news(db: Session = Depends(get_db_session), batch_size: int = 100):
+async def fetch_unprocessed_news(
+    db: Session = Depends(get_db_session), batch_size: int = 100
+):
     try:
-        unprocessed_news = get_unprocessed_news(db, batch_size)
-        if unprocessed_news:
-            return {"ner_news_items": unprocessed_news}
-        else:
-            return {"message": "No unprocessed news found"}
+        unprocessed_news_batch = get_unprocessed_news(db, batch_size)
+        return unprocessed_news_batch
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 
 @router.post("/ner_mark_processed")
@@ -42,10 +40,10 @@ async def update_processed_flag(
 
 @router.post("/ner_save_results")
 async def save_ner_inference_results(
-    db: Session = Depends(get_db_session), ner_results: NERInferenceResultBatch
+    ner_results: NERInferenceResultBatch, db: Session = Depends(get_db_session)
 ):
     try:
-        success = save_ner_results(db, ner_results)
+        success = save_ner_results(ner_results, db)
         if success:
             return {"message": "NER results saved successfully"}
         else:

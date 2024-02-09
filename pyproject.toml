@@ -20,3 +20,14 @@ max-line-length = 88
 max-complexity = 12
 select = ["C", "E", "F", "W", "B", "B950"]
 ignore = ["E203", "W503"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "styx_app/data_provider_api/tests",
+    "styx_app/data_provider_api/app"
+]
+python_files = [
+    "test_*.py",
+    "*_test.py",
+]
+addopts = "-v"

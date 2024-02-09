@@ -1,8 +1,15 @@
 from pydantic import BaseModel
 from typing import Optional, List
+from pydantic import ConfigDict
+
+# from .db_models import RawNewsArticle
 
 
-class BaseNewsItem(BaseModel):
+class OurBaseModel(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BaseNewsItem(OurBaseModel):
     id: int
     title: str
     text: str
@@ -11,12 +18,21 @@ class BaseNewsItem(BaseModel):
 class NERNewsItem(BaseNewsItem):
     is_processed_ner: Optional[bool] = False
 
+    # @classmethod
+    # def from_orm(cls, orm_model: RawNewsArticle):
+    #     return cls(
+    #         id=orm_model.id,
+    #         title=orm_model.title,
+    #         text=orm_model.text,
+    #         is_processed_ner=orm_model.is_processed_ner,
+    #     )
 
-class NERNewsBatch(BaseModel):
+
+class NERNewsBatch(OurBaseModel):
     ner_news_items: List[NERNewsItem]
 
 
-class Mention(BaseModel):
+class Mention(OurBaseModel):
     start: int
     length: int
     mention_text: str
@@ -26,7 +42,7 @@ class Mention(BaseModel):
     entity_type: str
 
 
-class NERInferenceResult(BaseModel):
+class NERInferenceResult(OurBaseModel):
     raw_news_id: int
     headline_mentions: List[Mention]
     body_text_mentions: List[Mention]
@@ -34,9 +50,9 @@ class NERInferenceResult(BaseModel):
     salient_entities_set: List[str]
 
 
-class NERInferenceResultBatch(BaseModel):
+class NERInferenceResultBatch(OurBaseModel):
     ner_inference_results: List[NERInferenceResult]
 
 
-class NewsIDs(BaseModel):
+class NewsIDs(OurBaseModel):
     news_ids: List[int]

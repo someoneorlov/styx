@@ -3,15 +3,19 @@ from sqlalchemy.exc import SQLAlchemyError
 from ..db_models import (
     RawNewsArticle,
     NerResults,
-)  # Ensure these are defined in your SQLAlchemy models
-from ....logging_config import setup_logger  # Adjust the import path as needed
+)
+from ....logging_config import setup_logger
 from typing import List
-from ..models import NERInferenceResultBatch  # Adjust import path as needed
+from ..models import (
+    NERInferenceResultBatch,
+    NERNewsBatch,
+    NERNewsItem,
+)
 
 logger = setup_logger(__name__)
 
 
-def get_unprocessed_news(db: Session, batch_size=100):
+def get_unprocessed_news(db: Session, batch_size=100) -> NERNewsBatch:
     try:
         unprocessed_news_batch = (
             db.query(RawNewsArticle)
@@ -19,10 +23,15 @@ def get_unprocessed_news(db: Session, batch_size=100):
             .limit(batch_size)
             .all()
         )
+        # Convert ORM objects to Pydantic models
+        ner_news_items: List[NERNewsItem] = [
+            NERNewsItem.from_orm(item) for item in unprocessed_news_batch
+        ]
+
         logger.info(
             f"Successfully fetched {len(unprocessed_news_batch)} unprocessed news articles."
         )
-        return unprocessed_news_batch  # Ensure you return a structure that matches NERNewsBatch
+        return NERNewsBatch(ner_news_items=ner_news_items)
     except SQLAlchemyError as e:
         logger.error(f"Failed to fetch unprocessed news: {e}")
         raise
@@ -44,7 +53,7 @@ def mark_news_as_processed(db: Session, news_ids: List[int]):
         return False
 
 
-def save_ner_results(db: Session, ner_results_data: NERInferenceResultBatch):
+def save_ner_results(ner_results_data: NERInferenceResultBatch, db: Session):
     try:
         for ner_result in ner_results_data.ner_inference_results:
             entities = {
