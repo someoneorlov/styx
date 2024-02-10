@@ -45,10 +45,8 @@ Moving forward, the project will focus on enhancing its capabilities and user ex
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-==============================
 
-Project Organization
---------------------
+## Project Organization
 
     ├── LICENSE
     ├── README.md          <- The top-level README for developers using this project.
@@ -101,5 +99,3 @@ Project Organization
         ├── model_inference_api
         ├── data_provider_api
         └── scraper_service
-
-    --------
