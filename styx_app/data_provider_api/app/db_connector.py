@@ -38,7 +38,7 @@ def get_engine(max_retries=5, initial_delay=5):
             logger.error(f"Attempt {retries + 1} failed: {error}")
             sleep(delay)
             retries += 1
-            delay *= 2  # Exponential backoff
+            # delay *= 2  # Exponential backoff
     logger.error("Exceeded maximum number of retries to connect to the database.")
     return None
 

@@ -77,14 +77,57 @@ def test_update_processed_flag_success(mock_mark_as_processed, get_db_sessio):
 def test_update_nonexistent_news_ids(mock_mark_as_processed, get_db_sessio):
     mock_mark_as_processed.return_value = False
     response = client.post("/ner-data/ner_mark_processed", json={"news_ids": [999]})
+    print(response.content)
     assert response.status_code == 400
     assert response.json() == {"detail": "Failed to mark news items as processed"}
 
 
-# @patch("path.to.get_db_session")
-# @patch("styx_app.data_provider_api.app.routes.ner_data_routes.mark_news_as_processed")
-# def test_update_processed_flag_exception(mock_mark_as_processed, mock_db_session):
-#     mock_mark_as_processed.side_effect = SQLAlchemyError("Database error")
-#     response = client.post("/ner_mark_processed", json={"news_ids": [1, 2, 3]})
-#     assert response.status_code == 500
-#     assert "detail" in response.json()
+@patch("styx_app.data_provider_api.app.dependencies.get_db_session")
+@patch("styx_app.data_provider_api.app.routes.ner_data_routes.mark_news_as_processed")
+def test_update_processed_flag_exception(mock_mark_as_processed, get_db_sessio):
+    mock_mark_as_processed.side_effect = SQLAlchemyError("Database error")
+    response = client.post("/ner-data/ner_mark_processed", json={"news_ids": [1, 2, 3]})
+    assert response.status_code == 500
+    assert "detail" in response.json()
+
+
+@patch("styx_app.data_provider_api.app.routes.ner_data_routes.save_ner_results")
+def test_save_ner_inference_results_success(mock_save_ner_results):
+    mock_save_ner_results.return_value = True
+
+    ner_results_data = {
+        "ner_inference_results": [
+            {
+                "raw_news_id": 1,
+                "headline_mentions": [],
+                "body_text_mentions": [],
+                "salient_entities_org": [],
+                "salient_entities_set": [],
+            }
+        ]
+    }
+
+    response = client.post("/ner-data/ner_save_results", json=ner_results_data)
+    assert response.status_code == 200
+    assert response.json() == {"message": "NER results saved successfully"}
+
+
+@patch("styx_app.data_provider_api.app.routes.ner_data_routes.save_ner_results")
+def test_save_ner_inference_results_failure(mock_save_ner_results):
+    mock_save_ner_results.return_value = False
+
+    ner_results_data = {
+        "ner_inference_results": [
+            {
+                "raw_news_id": 1,
+                "headline_mentions": [],
+                "body_text_mentions": [],
+                "salient_entities_org": [],
+                "salient_entities_set": [],
+            }
+        ]
+    }
+    response = client.post("/ner-data/ner_save_results", json=ner_results_data)
+    print(response.content)
+    assert response.status_code == 400
+    assert response.json() == {"detail": "Failed to save NER results"}

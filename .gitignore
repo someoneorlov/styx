@@ -83,6 +83,7 @@ target/
 
 # exclude logs from source control by default
 /logs/
+/logs_test/
 
 # Mac OS-specific storage files
 .DS_Store

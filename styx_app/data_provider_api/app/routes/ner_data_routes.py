@@ -1,5 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from ....logging_config import setup_logger
 from ..models import NERNewsBatch, NERInferenceResultBatch, NewsIDs
 from ..dependencies import get_db_session
 from ..services.ner_data_services import (
@@ -7,6 +10,8 @@ from ..services.ner_data_services import (
     mark_news_as_processed,
     save_ner_results,
 )
+
+logger = setup_logger(__name__)
 
 router = APIRouter()
 
@@ -22,6 +27,79 @@ async def fetch_unprocessed_news(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# @router.post("/ner_mark_processed")
+# async def update_processed_flag(
+#     news_ids: NewsIDs, db: Session = Depends(get_db_session)
+# ):
+#     try:
+#         success = mark_news_as_processed(db, news_ids.news_ids)
+#         if success:
+#             return {"message": "News items marked as processed"}
+#         else:
+#             raise HTTPException(
+#                 status_code=400, detail="Failed to mark news items as processed"
+#             )
+#             return {"message": "Failed to mark news items as processed"}
+#     except SQLAlchemyError as e:
+#         logger.error(
+#             f"ner_mark_processed. Database error: {e.__class__.__name__}: {str(e)}"
+#         )
+#         raise HTTPException(status_code=500, detail="Internal Server Error")
+#     except Exception as e:
+#         logger.error(
+#             f"ner_mark_processed. Unexpected error: {e.__class__.__name__}: {str(e)}"
+#         )
+#         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+# @router.post("/ner_mark_processed")
+# async def update_processed_flag(
+#     news_ids: NewsIDs, db: Session = Depends(get_db_session)
+# ):
+#     if not mark_news_as_processed(db, news_ids.news_ids):
+#         raise HTTPException(
+#             status_code=400, detail="Failed to mark news items as processed"
+#         )
+#     return {"message": "News items marked as processed"}
+
+
+# @router.post("/ner_mark_processed")
+# async def update_processed_flag(
+#     news_ids: NewsIDs, db: Session = Depends(get_db_session)
+# ):
+#     try:
+#         if not mark_news_as_processed(db, news_ids.news_ids):
+#             raise HTTPException(
+#                 status_code=400, detail="Failed to mark news items as processed"
+#             )
+#     # except SQLAlchemyError as e:
+#     #     logger.error(f"Database error during processing: {str(e)}", exc_info=True)
+#     #     raise HTTPException(status_code=500, detail="Internal Server Error") from e
+#     except Exception as e:
+#         exc_info = traceback.format_exc()
+#         logger.error(f"Unexpected error: {exc_info}")
+#         raise HTTPException(status_code=500, detail="Internal Server Error") from e
+#     return {"message": "News items marked as processed"}
+
+
+# @router.post("/ner_save_results")
+# async def save_ner_inference_results(
+#     ner_results: NERInferenceResultBatch, db: Session = Depends(get_db_session)
+# ):
+#     try:
+#         success = save_ner_results(ner_results, db)
+#         if success:
+#             return {"message": "NER results saved successfully"}
+#         else:
+#             raise HTTPException(status_code=400, detail="Failed to save NER results")
+#     except SQLAlchemyError as e:
+#         logger.error(f"ner_save_results. Database error: {e}")
+#         raise HTTPException(status_code=500, detail="Internal Server Error")
+#     except Exception as e:
+#         logger.error(f"ner_save_results. Unexpected error: {e}")
+#         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
 @router.post("/ner_mark_processed")
 async def update_processed_flag(
     news_ids: NewsIDs, db: Session = Depends(get_db_session)
@@ -31,11 +109,24 @@ async def update_processed_flag(
         if success:
             return {"message": "News items marked as processed"}
         else:
-            raise HTTPException(
-                status_code=400, detail="Failed to mark news items as processed"
+            return JSONResponse(
+                status_code=400,
+                content={"detail": "Failed to mark news items as processed"},
             )
+    except SQLAlchemyError as e:
+        logger.error(
+            f"ner_mark_processed. SQLAlchemy error: {e.__class__.__name__}: {str(e)}"
+        )
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(
+            f"ner_mark_processed. Unexpected error: {e.__class__.__name__}: {str(e)}"
+        )
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
 
 
 @router.post("/ner_save_results")
@@ -47,6 +138,20 @@ async def save_ner_inference_results(
         if success:
             return {"message": "NER results saved successfully"}
         else:
-            raise HTTPException(status_code=400, detail="Failed to save NER results")
+            return JSONResponse(
+                status_code=400, content={"detail": "Failed to save NER results"}
+            )
+    except SQLAlchemyError as e:
+        logger.error(
+            f"ner_mark_processed. SQLAlchemy error: {e.__class__.__name__}: {str(e)}"
+        )
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(
+            f"ner_mark_processed. Unexpected error: {e.__class__.__name__}: {str(e)}"
+        )
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
