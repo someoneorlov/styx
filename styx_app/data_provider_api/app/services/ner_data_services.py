@@ -4,7 +4,7 @@ from ..db_models import (
     RawNewsArticle,
     NerResults,
 )
-from ....logging_config import setup_logger
+from ..logging_config import setup_logger
 from typing import List
 from ..models import (
     NERInferenceResultBatch,
@@ -19,6 +19,7 @@ def get_unprocessed_news(db: Session, batch_size=100) -> NERNewsBatch:
     try:
         unprocessed_news_batch = (
             db.query(RawNewsArticle)
+            .filter(RawNewsArticle.is_parsed == True)
             .filter(RawNewsArticle.is_processed_ner == False)
             .limit(batch_size)
             .all()

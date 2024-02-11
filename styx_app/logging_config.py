@@ -4,13 +4,11 @@ from logging.handlers import RotatingFileHandler
 
 
 def setup_logger(name, level=logging.INFO):
-    environment = os.getenv("ENVIRONMENT", "test")
-    default_log_dir = "/home/ec2-user/projects/styx/logs"
-    log_dir = os.getenv(
-        "LOG_DIR",
-        default_log_dir if environment != "test" else f"{default_log_dir}_test",
-    )
-
+    # environment = os.getenv("ENVIRONMENT", "prod")
+    # default_log_dir = "/var/log/logs"
+    # log_dir = os.getenv("LOG_DIR", default_log_dir)
+    # log_dir = default_log_dir if environment != "test" else f"{default_log_dir}_test"
+    log_dir = "/var/log"
     log_file_path = os.path.join(log_dir, f"{name}.log")
     handler = RotatingFileHandler(
         log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3

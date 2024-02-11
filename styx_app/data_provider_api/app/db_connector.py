@@ -1,29 +1,23 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session
 import os
 from time import sleep
 from sqlalchemy.exc import OperationalError
-from ...logging_config import setup_logger
+from .logging_config import setup_logger
 
 
 logger = setup_logger(__name__)
 
 
 def get_engine(max_retries=5, initial_delay=5):
-    environment = os.getenv("ENVIRONMENT", "test")
+    host = os.getenv("DB_HOST")
+    port = os.getenv("DB_PORT")
+    db = os.getenv("DB_NAME")
+    user = os.getenv("DB_USER")
+    password = os.getenv("DB_PASS")
 
-    if environment == "prod":
-        user = os.getenv("DB_USER_PROD")
-        password = os.getenv("DB_PASS_PROD")
-        db = os.getenv("POSTGRES_DB_PROD")
-    else:
-        user = os.getenv("DB_USER_TEST")
-        password = os.getenv("DB_PASS_TEST")
-        db = os.getenv("POSTGRES_DB_TEST")
+    DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
 
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5433")
-    DATABASE_URL = f"postgresql://{user}:{password}@{host}:{port}/{db}"
     retries = 0
     delay = initial_delay
 
@@ -31,14 +25,14 @@ def get_engine(max_retries=5, initial_delay=5):
         try:
             engine = create_engine(DATABASE_URL, pool_pre_ping=True, echo=True)
             with engine.begin() as conn:
-                conn.execute("SELECT 1")
+                conn.execute(text("SELECT 1"))
             logger.info("Database connection established.")
             return engine
         except OperationalError as error:
             logger.error(f"Attempt {retries + 1} failed: {error}")
             sleep(delay)
             retries += 1
-            # delay *= 2  # Exponential backoff
+            delay *= 2  # Exponential backoff
     logger.error("Exceeded maximum number of retries to connect to the database.")
     return None
 
@@ -69,7 +63,7 @@ if __name__ == "__main__":
         db = SessionLocal()
         try:
             # Perform database operations
-            result = db.execute("SELECT 1")
+            result = db.execute(text("SELECT 1"))
             for row in result:
                 print(row)
         finally:

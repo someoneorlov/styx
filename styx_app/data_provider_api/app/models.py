@@ -8,6 +8,9 @@ from pydantic import ConfigDict
 class OurBaseModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    class Config:
+        orm_mode = True
+
 
 class BaseNewsItem(OurBaseModel):
     id: int

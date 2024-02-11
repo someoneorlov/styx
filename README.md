@@ -51,10 +51,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
     ├── LICENSE
     ├── README.md          <- The top-level README for developers using this project.
     ├── alertmanager       <- Configuration for Alertmanager to handle alerts sent by Prometheus.
-    │   └── alertmanager.yml
     │
     ├── dags               <- Airflow DAGs for orchestrating ETL tasks.
-    │   └── scrape_g_news_docker_run.py
     │
     ├── data
     │   ├── external       <- Data from third party sources.
