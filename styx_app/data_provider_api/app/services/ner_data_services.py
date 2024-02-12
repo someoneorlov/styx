@@ -30,7 +30,8 @@ def get_unprocessed_news(db: Session, batch_size=100) -> NERNewsBatch:
         ]
 
         logger.info(
-            f"Successfully fetched {len(unprocessed_news_batch)} unprocessed news articles."
+            f"Successfully fetched {len(unprocessed_news_batch)} "
+            f"unprocessed news articles."
         )
         return NERNewsBatch(ner_news_items=ner_news_items)
     except SQLAlchemyError as e:
@@ -75,7 +76,8 @@ def save_ner_results(ner_results_data: NERInferenceResultBatch, db: Session):
             db.add(new_ner_result)
         db.commit()
         logger.info(
-            f"Successfully saved NER results for {len(ner_results_data.ner_inference_results)} articles."
+            f"Successfully saved NER results for "
+            f"{len(ner_results_data.ner_inference_results)} articles."
         )
         return True
     except SQLAlchemyError as e:
