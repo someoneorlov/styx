@@ -1,0 +1,108 @@
+{
+    "ner_results": [
+        {
+          "raw_news_id": 7343,
+          "headline_mentions": [
+            [
+              0,
+              5,
+              "China",
+              "China",
+              0.6106346704367213,
+              0.9554500579833984,
+              "LOC"
+            ]
+          ],
+          "body_text_mentions": [
+            [
+              52,
+              8,
+              "San Jose",
+              "San_Jose_International_Airport",
+              0.3490071317457343,
+              0.9994771778583527,
+              "LOC"
+            ],
+            [
+              62,
+              6,
+              "Calif.",
+              "California",
+              0.4042496299122418,
+              0.999439537525177,
+              "LOC"
+            ],
+            [
+              99,
+              7,
+              "Beijing",
+              "Beijing_Capital_International_Airport",
+              0.35509242525271717,
+              0.9998999834060669,
+              "LOC"
+            ],
+            [
+              140,
+              10,
+              "Terminal B",
+              "AirTrain_Newark",
+              0.3872777678067984,
+              0.6423706412315369,
+              "LOC"
+            ]
+          ],
+          "salient_entities_org": [],
+          "salient_entities_set": [
+            "None"
+          ]
+        },
+        {
+          "raw_news_id": 7350,
+          "headline_mentions": [
+            [
+              0,
+              16,
+              "U.S. Coast Guard",
+              "United_States_Coast_Guard",
+              0.33870001355378027,
+              0.8775821725527445,
+              "ORG"
+            ]
+          ],
+          "body_text_mentions": [
+            [
+              0,
+              9,
+              "BALTIMORE",
+              "Baltimore",
+              0.7836816786122003,
+              0.9993070363998413,
+              "LOC"
+            ],
+            [
+              17,
+              16,
+              "U.S. Coast Guard",
+              "United_States_Coast_Guard",
+              0.3133000460369567,
+              0.8783348798751831,
+              "ORG"
+            ]
+          ],
+          "salient_entities_org": [
+            [
+              17,
+              16,
+              "U.S. Coast Guard",
+              "United_States_Coast_Guard",
+              0.3133000460369567,
+              0.8783348798751831,
+              "ORG"
+            ]
+          ],
+          "salient_entities_set": [
+            "United_States_Coast_Guard"
+          ]
+        }
+    ]
+}

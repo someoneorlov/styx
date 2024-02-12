@@ -41,8 +41,9 @@ class NerResults(Base):
     raw_news_article_id = Column(
         Integer, ForeignKey("raw_news_articles.id"), nullable=False
     )
-    entities = Column(JSON)
+    headline_mentions = Column(JSON)
+    body_text_mentions = Column(JSON)
+    salient_entities_org = Column(JSON)
+    salient_entities_set = Column(JSON)
     date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    raw_news_article = relationship(
-        "RawNewsArticle", back_populates="ner_results"
-    )  # Back-reference
+    raw_news_article = relationship("RawNewsArticle", back_populates="ner_results")

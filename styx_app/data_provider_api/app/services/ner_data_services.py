@@ -58,20 +58,18 @@ def mark_news_as_processed(db: Session, news_ids: List[int]):
 def save_ner_results(ner_results_data: NERInferenceResultBatch, db: Session):
     try:
         for ner_result in ner_results_data.ner_inference_results:
-            entities = {
-                "headline_mentions": [
+            new_ner_result = NerResults(
+                raw_news_article_id=ner_result.raw_news_id,
+                headline_mentions=[
                     mention.dict() for mention in ner_result.headline_mentions
                 ],
-                "body_text_mentions": [
+                body_text_mentions=[
                     mention.dict() for mention in ner_result.body_text_mentions
                 ],
-                "salient_entities_org": [
+                salient_entities_org=[
                     mention.dict() for mention in ner_result.salient_entities_org
                 ],
-                "salient_entities_set": ner_result.salient_entities_set,
-            }
-            new_ner_result = NerResults(
-                raw_news_article_id=ner_result.raw_news_id, entities=entities
+                salient_entities_set=ner_result.salient_entities_set,
             )
             db.add(new_ner_result)
         db.commit()

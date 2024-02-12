@@ -33,4 +33,5 @@ done
 
 # Execute Flyway command
 flyway_url="jdbc:postgresql://db_${ENVIRONMENT}:${DB_PORT}/${POSTGRES_DB}"
+# /flyway/flyway -url=${flyway_url} -user=${DB_USER} -password=${DB_PASS} repair
 /flyway/flyway -url=${flyway_url} -user=${DB_USER} -password=${DB_PASS} migrate
