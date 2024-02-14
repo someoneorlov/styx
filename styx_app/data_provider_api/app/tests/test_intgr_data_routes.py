@@ -1,5 +1,6 @@
 import pytest
 import json
+import random
 from fastapi.testclient import TestClient
 from ..dependencies import get_db_session
 from ..db_models import RawNewsArticle, NerResults
@@ -78,14 +79,15 @@ def load_test_data():
         return json.load(f)
 
 
-def test_save_ner_inference_results(client, db_session):
-    # Sample data directly from your ner_inference_api
-    test_data = load_test_data()["ner_results"]
+def generate_unique_id():
+    """Generate a unique ID for test data."""
+    return random.randint(100000, 10000000)
 
-    # Transform sample data into Pydantic models
-    ner_inference_results = [
+
+def transform_test_data_to_ner_inference_results(test_data, test_ids):
+    result = [
         NERInferenceResult(
-            raw_news_id=item["raw_news_id"],
+            raw_news_id=test_ids[i],
             headline_mentions=[
                 Mention(
                     start=hm[0],
@@ -124,8 +126,64 @@ def test_save_ner_inference_results(client, db_session):
             ],
             salient_entities_set=item["salient_entities_set"],
         )
-        for item in test_data
+        for i, item in enumerate(test_data)
     ]
+
+    return result
+
+
+def insert_dependency_raw_news_with_new_ids(test_ids, db_session):
+    # Specified IDs to fetch and duplicate
+    specified_ids = [7343, 7350]
+
+    # Fetch the specified rows
+    articles_to_duplicate = (
+        db_session.query(RawNewsArticle)
+        .filter(RawNewsArticle.id.in_(specified_ids))
+        .all()
+    )
+
+    for i, article in enumerate(articles_to_duplicate):
+        # Duplicate the article with a new ID, including all relevant fields
+        duplicated_article = RawNewsArticle(
+            id=test_ids[i],
+            title=article.title,
+            text=article.text,
+            publish_date=article.publish_date,
+            publish_date_source=article.publish_date_source,
+            authors=article.authors,
+            canonical_link=article.canonical_link,
+            feed_link=article.feed_link,
+            media_link=article.media_link,
+            media_title=article.media_title,
+            is_parsed=article.is_parsed,
+            exception_class=article.exception_class,
+            exception_text=article.exception_text,
+            url_hash=article.url_hash,
+            canonical_link_hash=article.canonical_link_hash,
+            feed_link_hash=article.feed_link_hash,
+            title_hash=article.title_hash,
+            # Omitting 'date_created' field to allow it to be set to the current time
+            is_processed_ner=False,
+            # Assuming ner_results relationship will be handled separately if needed
+        )
+
+        # Insert the duplicated article
+        db_session.add(duplicated_article)
+
+    db_session.commit()
+
+
+def test_save_ner_inference_results(client, db_session):
+    test_data = load_test_data()["ner_results"]
+    test_ids = [generate_unique_id() for el in test_data]
+
+    insert_dependency_raw_news_with_new_ids(test_ids, db_session)
+
+    # Transform sample data into Pydantic models
+    ner_inference_results = transform_test_data_to_ner_inference_results(
+        test_data, test_ids
+    )
 
     ner_results_batch = NERInferenceResultBatch(
         ner_inference_results=ner_inference_results
@@ -135,62 +193,47 @@ def test_save_ner_inference_results(client, db_session):
     response = client.post("/ner-data/ner_save_results", json=ner_results_batch.dict())
     assert response.status_code == 200, response.text
 
-    for news_id in [7343, 7350]:
+    for item in ner_inference_results:
         ner_result = (
             db_session.query(NerResults)
-            .filter(NerResults.raw_news_article_id == news_id)
+            .filter(NerResults.raw_news_article_id == item.raw_news_id)
             .first()
         )
         assert (
             ner_result is not None
-        ), f"NER results for news ID {news_id} were not found in the database."
+        ), f"NER results for news ID {item.raw_news_id} were not found in the database."
 
 
-# def test_save_ner_inference_results(client):
-#     # Define a template function that returns a serialized mention dictionary
-#     def mention_template(id):
-#         mention = Mention(
-#             start=10 + id,
-#             length=7,
-#             mention_text=f"Example text {id}",
-#             linked_entity=f"http://example.org/entity{id}",
-#             confidence_score=0.95,
-#             link_probability=0.8,
-#             entity_type="ORG",
-#         )
-#         return mention.dict()  # Convert Pydantic model to dict for serialization
+def test_save_ner_inference_results_with_deduplication(client, db_session):
+    test_data = load_test_data()["ner_results"]
+    test_ids = [generate_unique_id() for el in test_data]
 
-#     news_ids = [1, 2, 3]
+    insert_dependency_raw_news_with_new_ids(test_ids, db_session)
 
-#     # Constructing NERInferenceResultBatch with serialized mentions
-#     ner_inference_results = [
-#         NERInferenceResult(
-#             raw_news_id=news_id,
-#             headline_mentions=[mention_template(news_id)],
-#             body_text_mentions=[mention_template(news_id), mention_template(news_id)],
-#             salient_entities_org=[mention_template(news_id)],
-#             salient_entities_set=[
-#                 f"ExampleEntity{news_id}1",
-#                 f"ExampleEntity{news_id}2",
-#             ],
-#         ).dict()
-#         for news_id in news_ids
-#     ]
+    ner_inference_results = transform_test_data_to_ner_inference_results(
+        test_data, test_ids
+    )
+    ner_results_batch = NERInferenceResultBatch(
+        ner_inference_results=ner_inference_results
+    )
 
-#     ner_results_batch = NERInferenceResultBatch(
-#         ner_inference_results=ner_inference_results
-#     )
+    # First submission
+    response = client.post("/ner-data/ner_save_results", json=ner_results_batch.dict())
+    assert response.status_code == 200, "First submission should succeed"
 
-#     # Serialize the entire payload since it contains lists of dictionaries
-#     response = client.post("/ner-data/ner_save_results", json=ner_results_batch.dict())
-#     assert response.status_code == 200
+    # Duplicate submission
+    response = client.post("/ner-data/ner_save_results", json=ner_results_batch.dict())
+    assert (
+        response.status_code == 200
+    ), "Duplicate submission should also succeed but not create duplicates"
 
-#     for news_id in news_ids:
-#         ner_result = (
-#             db_session.query(NerResults)
-#             .filter(NerResults.raw_news_article_id == news_id)
-#             .first()
-#         )
-#         assert (
-#             ner_result is not None
-#         ), f"NER results for news ID {news_id} were not found in the database."
+    # Verify deduplication in the database
+    for item in ner_inference_results:
+        count = (
+            db_session.query(NerResults)
+            .filter(NerResults.raw_news_article_id == item.raw_news_id)
+            .count()
+        )
+        assert (
+            count == 1
+        ), f"Expected exactly 1 entry for raw_news_id {item.raw_news_id}, found {count}"

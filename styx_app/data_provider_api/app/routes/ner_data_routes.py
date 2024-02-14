@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 from ..logging_config import setup_logger
 from ..models import NERNewsBatch, NERInferenceResultBatch, NewsIDs
 from ..dependencies import get_db_session
@@ -14,6 +15,18 @@ from ..services.ner_data_services import (
 logger = setup_logger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/health")
+async def health_check(db: Session = Depends(get_db_session)):
+    try:
+        # Attempt a simple database operation to verify connectivity
+        db.execute(text("SELECT 1"))
+        return {"status": "ok", "message": "Data Provider API is up and running"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Database connection failed: {str(e)}"
+        )
 
 
 @router.get("/ner_unprocessed_news", response_model=NERNewsBatch)

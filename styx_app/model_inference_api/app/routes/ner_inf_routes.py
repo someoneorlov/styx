@@ -1,5 +1,6 @@
 import os
 import json
+import requests
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -20,6 +21,27 @@ class ArticlesInput(BaseModel):
 
 router = APIRouter()
 API_URL = os.getenv("REL_API_URL", "http://rel:5555/api")
+
+
+@router.get("/health")
+async def health_check():
+    try:
+        # Check the REL API status
+        rel_status_response = requests.get(f"{API_URL}/")
+        rel_status = rel_status_response.json()
+
+        if rel_status_response.status_code == 200 and rel_status.get("message") == "up":
+            return {
+                "status": "ok",
+                "message": "Model Inference API and REL API are up and running",
+                "rel_api_status": rel_status,
+            }
+        else:
+            raise HTTPException(status_code=500, detail="REL API is down")
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=500, detail=f"Failed to connect to REL API: {str(e)}"
+        )
 
 
 @router.post("/extract_entities")
