@@ -1,4 +1,4 @@
-# import os
+import os
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
@@ -11,6 +11,8 @@ from styx_app.ner_service.src.ner_proceed_raw import (
     mark_news_as_processed,
     transform_ner_results_for_saving,
 )
+
+os.environ["NER_ENV"] = "test"
 
 default_args = {
     "owner": "airflow",

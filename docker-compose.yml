@@ -30,6 +30,10 @@ x-airflow-common:
     DB_NAME: ${POSTGRES_DB_PROD}
     DB_USER: ${DB_USER_PROD}
     DB_PASS: ${DB_PASS_PROD}
+    DATA_PROVIDER_API_URL_TEST: http://data_provider_api_test:8003
+    # DATA_PROVIDER_API_URL_PROD: http://data_provider_api_prod:<port>
+    MODEL_INFERENCE_API_URL_PROD: http://inference_api:8001
+    PYTHONPATH: "/opt/airflow/styx:$PYTHONPATH"
     # AIRFLOW__METRICS__STATSD_ON: 'True'
     # AIRFLOW__METRICS__STATSD_HOST: statsd-exporter
     # AIRFLOW__METRICS__STATSD_PORT: 8125
@@ -44,6 +48,7 @@ x-airflow-common:
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - /var/run/docker.sock:/var/run/docker.sock
+    - /home/ec2-user/projects/styx:/opt/airflow/styx
   user: "${AIRFLOW_UID:-50000}:0"
   group_add:
       - '999'  # Docker group ID
