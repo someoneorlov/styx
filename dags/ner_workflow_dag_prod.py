@@ -11,7 +11,7 @@ from styx_app.ner_service.src.ner_proceed_raw import (
     transform_ner_results_for_saving,
 )
 
-env = "test"
+env = "prod"
 os.environ["NER_ENV"] = env
 
 default_args = {
@@ -59,7 +59,7 @@ def mark_processed_news(**kwargs):
 with DAG(
     f"ner_workflow_{env}",
     default_args=default_args,
-    schedule_interval="25 * * * *",
+    schedule_interval="35 * * * *",
     catchup=False,
 ) as dag:
 

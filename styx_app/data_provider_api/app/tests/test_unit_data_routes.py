@@ -46,7 +46,7 @@ def test_fetch_unprocessed_news_error(mock_get_unprocessed_news):
     response = client.get("/ner-data/ner_unprocessed_news?batch_size=10")
     assert response.status_code == 500
     assert "detail" in response.json()
-    assert "Database error" in response.json()["detail"]
+    assert "Failed to fetch unprocessed news" in response.json()["detail"]
 
 
 # Edge Cases

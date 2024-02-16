@@ -1,4 +1,7 @@
 import requests
+from styx_packages.styx_logger.logging_config import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def extract_salient_entities(
@@ -8,19 +11,36 @@ def extract_salient_entities(
     article: str = "text",
     id: str = "id",
 ):
+    logger.info(f"Starting entity extraction for {len(data)} articles")
+
     annotated_articles = []
+    processed_ids = []
 
     for row in data:
         row = row.dict()
 
         if len(row[title].split()) > 3300 or len(row[article].split()) > 3300:
+            logger.warning(
+                f"Skipping article {row[id]} due to length constraints. "
+                f"Title length: {len(row[title].split())}, "
+                f"Article length: {len(row[article].split())}"
+            )
             continue
 
-        # Perform mention detection on headline and body text
-        el_title = requests.post(API_URL, json={"text": row[title], "spans": []}).json()
-        el_article = requests.post(
-            API_URL, json={"text": row[article], "spans": []}
-        ).json()
+        try:
+            # Perform mention detection on headline and body text
+            el_title = requests.post(
+                API_URL, json={"text": row[title], "spans": []}
+            ).json()
+            el_article = requests.post(
+                API_URL, json={"text": row[article], "spans": []}
+            ).json()
+        except Exception as e:
+            logger.error(
+                f"Failed to extract entities for article {row[id]}: {e}", exc_info=True
+            )
+            logger.error(f"Failed to extract entities for article {row[id]}: {e}")
+            continue
 
         # Filter mentions with the ORG tag
         headline_mentions_org = [
@@ -55,5 +75,10 @@ def extract_salient_entities(
                 "salient_entities_set": salient_entities_org_set,
             }
         )
+        processed_ids.append(row[id])
+    logger.info(
+        f"Successfully processed {len(annotated_articles)} "
+        f"articles with IDs: IDs: {processed_ids}"
+    )
 
     return annotated_articles

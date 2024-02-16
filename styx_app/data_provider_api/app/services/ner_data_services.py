@@ -4,7 +4,7 @@ from ..db_models import (
     RawNewsArticle,
     NerResults,
 )
-from ..logging_config import setup_logger
+from styx_packages.styx_logger.logging_config import setup_logger
 from typing import List
 from ..models import (
     NERInferenceResultBatch,
@@ -30,14 +30,13 @@ def get_unprocessed_news(db: Session, batch_size=100) -> NERNewsBatch:
         ner_news_items: List[NERNewsItem] = [
             NERNewsItem.from_orm(item) for item in unprocessed_news_batch
         ]
-
         logger.info(
             f"Successfully fetched {len(unprocessed_news_batch)} "
             f"unprocessed news articles."
         )
         return NERNewsBatch(ner_news_items=ner_news_items)
     except SQLAlchemyError as e:
-        logger.error(f"Failed to fetch unprocessed news: {e}")
+        logger.error(f"Error fetching unprocessed news from DB: {e}", exc_info=True)
         raise
 
 
@@ -53,22 +52,26 @@ def mark_news_as_processed(db: Session, news_ids: List[int]):
             .with_for_update()
             .all()
         )  # Lock these rows
-
+        if not articles_to_update:
+            logger.info(f"No news items found to mark as processed for IDs: {news_ids}")
+            return False
         # Mark them as processed
         for article in articles_to_update:
             article.is_processed_ner = True
-
         db.commit()
         logger.info(f"Marked news items as processed: {news_ids}")
-        return True if articles_to_update else False
+        return True
     except SQLAlchemyError as e:
         db.rollback()
-        logger.error(f"Failed to mark news items as processed {news_ids}: {e}")
+        logger.error(
+            f"Failed to mark news items as processed {news_ids}: {e}", exc_info=True
+        )
         return False
 
 
 def save_ner_results(ner_results_data: NERInferenceResultBatch, db: Session):
     try:
+        success_count = 0
         for ner_result in ner_results_data.ner_inference_results:
             # Check for existing entry
             existing_entry = (
@@ -76,20 +79,11 @@ def save_ner_results(ner_results_data: NERInferenceResultBatch, db: Session):
                 .filter_by(raw_news_article_id=ner_result.raw_news_id)
                 .first()
             )
-
             if existing_entry:
-                # Option 1: Update existing entry
-                # existing_entry.headline_mentions = [
-                #     mention.dict() for mention in ner_result.headline_mentions
-                # ]
-                # db.commit()
-
-                # Option 2: Skip inserting
                 logger.info(
                     f"Skipping duplicate NER result for ID {ner_result.raw_news_id}"
                 )
                 continue
-
             try:
                 # Proceed with insertion if no existing entry
                 new_ner_result = NerResults(
@@ -107,15 +101,15 @@ def save_ner_results(ner_results_data: NERInferenceResultBatch, db: Session):
                 )
                 db.add(new_ner_result)
                 db.commit()
-                logger.info(
-                    f"Successfully saved/updated NER results for "
-                    f"{len(ner_results_data.ner_inference_results)} articles."
-                )
+                success_count += 1
             except IntegrityError:
                 db.rollback()  # Rollback in case of a unique constraint violation
                 logger.info(
                     f"Duplicate NER result skipped for ID {ner_result.raw_news_id}"
                 )
+        logger.info(
+            f"Successfully saved/updated NER results for {success_count} articles."
+        )
     except SQLAlchemyError as e:
         db.rollback()
         logger.error(f"Failed to save NER results: {e}")

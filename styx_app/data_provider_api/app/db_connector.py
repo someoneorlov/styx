@@ -1,9 +1,9 @@
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, scoped_session
 import os
 from time import sleep
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import OperationalError
-from .logging_config import setup_logger
+from styx_packages.styx_logger.logging_config import setup_logger
 
 
 logger = setup_logger(__name__)
@@ -26,14 +26,19 @@ def get_engine(max_retries=5, initial_delay=5):
             engine = create_engine(DATABASE_URL, pool_pre_ping=True, echo=True)
             with engine.begin() as conn:
                 conn.execute(text("SELECT 1"))
-            logger.info("Database connection established.")
+            logger.info("Database connection successfully established.")
             return engine
         except OperationalError as error:
-            logger.error(f"Attempt {retries + 1} failed: {error}")
+            logger.error(
+                f"Database connection attempt {retries + 1} failed "
+                f"with error: {error}. Retrying in {delay} seconds..."
+            )
             sleep(delay)
             retries += 1
             delay *= 2  # Exponential backoff
-    logger.error("Exceeded maximum number of retries to connect to the database.")
+    logger.error(
+        "Failed to connect to the database after exceeding maximum retry attempts."
+    )
     return None
 
 
@@ -42,29 +47,10 @@ def session_factory(engine):
         SessionLocal = scoped_session(
             sessionmaker(autocommit=False, autoflush=False, bind=engine)
         )
+        logger.info("Session factory successfully created.")
         return SessionLocal
     else:
+        logger.error(
+            "Failed to create a session factory due to missing database engine."
+        )
         return None
-
-
-# Example usage
-if __name__ == "__main__":
-    user = os.getenv("DB_USER", "default_user")
-    password = os.getenv("DB_PASS", "default_password")
-    host = os.getenv("DB_HOST", "localhost")
-    port = os.getenv("DB_PORT", "5432")
-    db = os.getenv("DB_NAME", "default_db_name")
-
-    engine = get_engine(user, password, host, port, db)
-    SessionLocal = session_factory(engine)
-
-    # Example on how to use the session
-    if SessionLocal:
-        db = SessionLocal()
-        try:
-            # Perform database operations
-            result = db.execute(text("SELECT 1"))
-            for row in result:
-                print(row)
-        finally:
-            db.close()
