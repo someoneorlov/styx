@@ -30,9 +30,10 @@ x-airflow-common:
     DB_NAME: ${POSTGRES_DB_PROD}
     DB_USER: ${DB_USER_PROD}
     DB_PASS: ${DB_PASS_PROD}
-    DATA_PROVIDER_API_URL_TEST: http://data_provider_api_test:8003
-    DATA_PROVIDER_API_URL_PROD: http://data_provider_api_prod:8002
-    MODEL_INFERENCE_API_URL_PROD: http://inference_api:8001
+    MODEL_INFERENCE_API_URL_PROD: http://inference_api_prod:8001
+    MODEL_INFERENCE_API_URL_TEST: http://inference_api_test:8002
+    DATA_PROVIDER_API_URL_PROD: http://data_provider_api_prod:8003
+    DATA_PROVIDER_API_URL_TEST: http://data_provider_api_test:8004
     PYTHONPATH: "/opt/airflow/styx:$PYTHONPATH"
     # AIRFLOW__METRICS__STATSD_ON: 'True'
     # AIRFLOW__METRICS__STATSD_HOST: statsd-exporter
@@ -204,16 +205,34 @@ services:
       db_prod:
         condition: service_healthy
 
-  inference_api:
+  inference_api_prod:
     build:
         context:  .
-        dockerfile: ./styx_app/model_inference_api/Dockerfile
-    image: inference_api_img
+        dockerfile: ./styx_app/model_inference_api/Dockerfile.prod
+    image: inference_api_prod_img
     environment:
       REL_API_URL: ${REL_API_URL}
     ports:
       - "8001:8001"
+    volumes:
+      - ./logs:/var/log/
+    depends_on:
+      - rel
 
+  inference_api_test:
+    build:
+        context:  .
+        dockerfile: ./styx_app/model_inference_api/Dockerfile.test
+    image: inference_api_test_img
+    environment:
+      REL_API_URL: ${REL_API_URL}
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./logs_test:/var/log/
+    depends_on:
+      - rel
+  
   data_provider_api_prod:
     build:
         context: .
@@ -226,7 +245,7 @@ services:
       DB_USER: ${DB_USER_PROD}
       DB_PASS: ${DB_PASS_PROD}
     ports:
-      - "8002:8002"
+      - "8003:8003"
     volumes:
       - ./logs:/var/log/
     depends_on:
@@ -245,7 +264,7 @@ services:
       DB_USER: ${DB_USER_TEST}
       DB_PASS: ${DB_PASS_TEST}
     ports:
-      - "8003:8003"
+      - "8004:8004"
     volumes:
       - ./logs_test:/var/log/
     depends_on:

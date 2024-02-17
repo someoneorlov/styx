@@ -5,23 +5,24 @@ from typing import List
 from airflow.models import TaskInstance
 from styx_packages.styx_logger.logging_config import setup_logger
 
-# Determine the environment and set log directory accordingly
-env = os.getenv("NER_ENV", "test")  # Default to 'prod' if not set
 
-log_dir = "/opt/airflow/styx/logs_test" if env == "test" else "/opt/airflow/styx/logs"
-DATA_PROVIDER_API_URL = (
-    os.getenv("DATA_PROVIDER_API_URL_TEST")
-    if env == "test"
-    else os.getenv("DATA_PROVIDER_API_URL_PROD")
-)
-MODEL_INFERENCE_API_URL = os.getenv("MODEL_INFERENCE_API_URL_PROD")
-
-# Now use this `log_dir` when setting up your logger
-logger = setup_logger(__name__, log_dir)
+def env_var_confin(var, env):
+    return os.getenv(f"{var}_TEST") if env == "test" else os.getenv(f"{var}_PROD")
 
 
-def transform_ner_results_for_saving(ner_results):
+def log_dir_config(env):
+    return "/opt/airflow/styx/logs_test" if env == "test" else "/opt/airflow/styx/logs"
+
+
+def get_task_logger(task_name, log_dir):
+    logger_name = f"{__name__}.{task_name}"
+    return setup_logger(logger_name, log_dir)
+
+
+def transform_ner_results_for_saving(ner_results, env: str = "test"):
     """Transform NER results to match the expected format for saving."""
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("transform_ner_results_for_saving", log_dir)
     logger.info("Transforming NER results for saving...")
     transformed_results = [
         {
@@ -73,46 +74,52 @@ def transform_ner_results_for_saving(ner_results):
     return transformed_results
 
 
-# Define a backoff on HTTP error status codes 500-599
-@backoff.on_exception(
-    backoff.expo,
-    requests.exceptions.RequestException,
-    max_tries=8,
-    giveup=lambda e: e.response is not None and e.response.status_code < 500,
-    on_backoff=lambda details: logger.warning(
-        f"Retrying due to {details['exception']}. Attempt {details['tries']}"
-    ),
-    on_giveup=lambda details: logger.error(
-        f"Giving up due to {details['exception']} after {details['tries']} attempts"
-    ),
-    on_success=lambda details: logger.info(
-        f"Request succeeded after {details['tries']} attempts"
-    ),
-)
-def make_request(url, method="get", **kwargs):
-    """
-    A generic request function that includes retry logic.
-    """
-    logger.debug(f"Making {method.upper()} request to {url} with args: {kwargs}")
-    with requests.Session() as session:
-        if method.lower() == "get":
-            response = session.get(url, **kwargs)
-        elif method.lower() == "post":
-            response = session.post(url, **kwargs)
-        else:
-            raise ValueError(f"Unsupported method: {method}")
+def make_request(url, method="get", env="test", **kwargs):
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("make_request", log_dir)
 
-        response.raise_for_status()  # Raise an HTTPError for bad responses
-        return response
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_tries=8,
+        giveup=lambda e: e.response is not None and e.response.status_code < 500,
+        on_backoff=lambda details: logger.warning(
+            f"Retrying due to {details['exception']}. Attempt {details['tries']}"
+        ),
+        on_giveup=lambda details: logger.error(
+            f"Giving up due to {details['exception']} after {details['tries']} attempts"
+        ),
+        on_success=lambda details: logger.info(
+            f"Request succeeded after {details['tries']} attempts"
+        ),
+    )
+    def _request_with_backoff():
+        with requests.Session() as session:
+            if method.lower() == "get":
+                response = session.get(url, **kwargs)
+            elif method.lower() == "post":
+                response = session.post(url, **kwargs)
+            else:
+                raise ValueError(f"Unsupported method: {method}")
+            response.raise_for_status()
+            return response
+
+    # Call the inner function which is decorated with backoff
+    return _request_with_backoff()
 
 
-def fetch_unprocessed_news(batch_size: int = 5, **kwargs) -> None:
+def fetch_unprocessed_news(batch_size: int = 5, env: str = "test", **kwargs) -> None:
     """Fetch a batch of unprocessed news articles and push to XCom."""
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("fetch_unprocessed_news", log_dir)
     logger.info(f"Attempting to fetch {batch_size} unprocessed news items...")
+    DATA_PROVIDER_API_URL = env_var_confin("DATA_PROVIDER_API_URL", env)
+    logger.info(f"DATA_PROVIDER_API_URL: {DATA_PROVIDER_API_URL} | log_dir: {log_dir}")
     try:
         response = make_request(
             f"{DATA_PROVIDER_API_URL}/ner-data/ner_unprocessed_news",
             method="get",
+            env=env,
             params={"batch_size": batch_size},
         )
         response.raise_for_status()
@@ -126,11 +133,18 @@ def fetch_unprocessed_news(batch_size: int = 5, **kwargs) -> None:
         raise
 
 
-def process_news_through_ner(**kwargs):
+def process_news_through_ner(env: str = "test", **kwargs):
     """Send news items to the NER model for entity recognition."""
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("process_news_through_ner", log_dir)
+    MODEL_INFERENCE_API_URL = env_var_confin("MODEL_INFERENCE_API_URL", env)
     ti = kwargs["ti"]
     news_items = ti.xcom_pull(task_ids="fetch_unprocessed_news", key="news_items")
+    logger.info(
+        f"MODEL_INFERENCE_API_URL: {MODEL_INFERENCE_API_URL} | log_dir: {log_dir}"
+    )
     logger.info(f"Processing {len(news_items)} news items through NER...")
+
     if not news_items:
         logger.info("No news items to process.")
         return []
@@ -139,6 +153,7 @@ def process_news_through_ner(**kwargs):
         response = make_request(
             f"{MODEL_INFERENCE_API_URL}/ner-inf/extract_entities",
             method="post",
+            env=env,
             json=articles_input,
         )
         response.raise_for_status()
@@ -150,14 +165,18 @@ def process_news_through_ner(**kwargs):
         raise
 
 
-def save_ner_results(ner_results: List[dict], **context):
+def save_ner_results(ner_results: List[dict], env: str = "test", **context):
     """Save NER results to the database and return processed news IDs."""
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("save_ner_results", log_dir)
+    DATA_PROVIDER_API_URL = env_var_confin("DATA_PROVIDER_API_URL", env)
     try:
         logger.info("Saving NER results...")
         processed_ids = [result["raw_news_id"] for result in ner_results]
         response = make_request(
             f"{DATA_PROVIDER_API_URL}/ner-data/ner_save_results",
             method="post",
+            env=env,
             json={"ner_inference_results": ner_results},
         )
         response.raise_for_status()
@@ -169,8 +188,11 @@ def save_ner_results(ner_results: List[dict], **context):
         raise
 
 
-def mark_news_as_processed(**context):
+def mark_news_as_processed(env: str = "test", **context):
     """Mark news items as processed in the database."""
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("mark_news_as_processed", log_dir)
+    DATA_PROVIDER_API_URL = env_var_confin("DATA_PROVIDER_API_URL", env)
     news_ids = context["ti"].xcom_pull(
         task_ids="save_ner_results", key="processed_news_ids"
     )
@@ -179,6 +201,7 @@ def mark_news_as_processed(**context):
         response = make_request(
             f"{DATA_PROVIDER_API_URL}/ner-data/ner_mark_processed",
             method="post",
+            env=env,
             json={"news_ids": news_ids},
         )
         response.raise_for_status()

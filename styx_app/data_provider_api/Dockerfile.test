@@ -20,4 +20,4 @@ COPY ./styx_app/data_provider_api/app ./app/
 # # Run tree command to print directory tree on container start
 # CMD ["tree", "."]
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8004"]

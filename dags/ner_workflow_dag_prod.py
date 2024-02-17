@@ -1,4 +1,3 @@
-import os
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
@@ -12,7 +11,6 @@ from styx_app.ner_service.src.ner_proceed_raw import (
 )
 
 env = "prod"
-os.environ["NER_ENV"] = env
 
 default_args = {
     "owner": "airflow",
@@ -26,24 +24,24 @@ default_args = {
 }
 
 
-def prepare_ner_results_for_saving(**kwargs):
+def prepare_ner_results_for_saving(env: str = "test", **kwargs):
     """Airflow task to transform NER results for saving."""
     ti = kwargs["ti"]
     ner_results = ti.xcom_pull(task_ids="process_news_through_ner")
-    transformed_results = transform_ner_results_for_saving(ner_results)
+    transformed_results = transform_ner_results_for_saving(ner_results, env)
     ti.xcom_push(key="transformed_ner_results", value=transformed_results)
 
 
-def save_transformed_ner_results(**kwargs):
+def save_transformed_ner_results(env: str = "test", **kwargs):
     """Task to save transformed NER results, pulling from XCom."""
     ti = kwargs["ti"]
     transformed_ner_results = ti.xcom_pull(
         task_ids="prepare_ner_results_for_saving", key="transformed_ner_results"
     )
-    save_ner_results(ner_results=transformed_ner_results, **kwargs)
+    save_ner_results(ner_results=transformed_ner_results, env=env, **kwargs)
 
 
-def mark_processed_news(**kwargs):
+def mark_processed_news(env: str = "test", **kwargs):
     """Task to mark news as processed, based on IDs from saved NER results."""
     ti = kwargs["ti"]
     processed_news_ids = ti.xcom_pull(
@@ -53,44 +51,48 @@ def mark_processed_news(**kwargs):
     context["news_ids"] = processed_news_ids  # Add 'news_ids' to context
 
     # Now pass the entire context as keyword arguments
-    mark_news_as_processed(**context)
+    mark_news_as_processed(env=env, **context)
 
 
 with DAG(
     f"ner_workflow_{env}",
     default_args=default_args,
-    schedule_interval="35 * * * *",
+    schedule_interval="30 * * * *",
     catchup=False,
 ) as dag:
 
     t1 = PythonOperator(
         task_id="fetch_unprocessed_news",
         python_callable=fetch_unprocessed_news,
-        op_kwargs={"batch_size": 100},
+        op_kwargs={"batch_size": 100, "env": env},
         provide_context=True,
     )
 
     t2 = PythonOperator(
         task_id="process_news_through_ner",
         python_callable=process_news_through_ner,
+        op_kwargs={"env": env},
         provide_context=True,
     )
 
     prepare_results = PythonOperator(
         task_id="prepare_ner_results_for_saving",
         python_callable=prepare_ner_results_for_saving,
+        op_kwargs={"env": env},
         provide_context=True,
     )
 
     t3 = PythonOperator(
         task_id="save_ner_results",
         python_callable=save_transformed_ner_results,
+        op_kwargs={"env": env},
         provide_context=True,
     )
 
     t4 = PythonOperator(
         task_id="mark_news_as_processed",
         python_callable=mark_processed_news,
+        op_kwargs={"env": env},
         provide_context=True,
     )
 

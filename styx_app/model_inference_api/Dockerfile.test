@@ -7,10 +7,11 @@ WORKDIR /app
 COPY ./styx_packages /app/styx_packages
 RUN pip install ./styx_packages
 
-COPY ./styx_app/data_provider_api/requirements.txt .
+COPY ./styx_app/model_inference_api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install pytest==7.4.4
+RUN pip install httpx
 
-COPY ./styx_app/data_provider_api/app ./app/
+COPY ./styx_app/model_inference_api/app ./app/
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8003"]
-
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8002"]
