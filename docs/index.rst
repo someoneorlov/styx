@@ -6,6 +6,8 @@
 styx documentation!
 ==============================================
 
+Styx is an advanced machine learning project aimed at providing detailed news analysis centered around companies. It not only lists related news in chronological order but also summarizes articles and evaluates their sentiment to determine if they have a positive or negative impact.
+
 Contents:
 
 .. toctree::
@@ -13,6 +15,8 @@ Contents:
 
    getting-started
    commands
+   configuration
+   api_reference
 
 
 
