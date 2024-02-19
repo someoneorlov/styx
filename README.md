@@ -6,6 +6,11 @@ Styx is an advanced machine learning project aimed at providing detailed news an
 
 Styx addresses the challenge of filtering and analyzing news content to focus specifically on how it relates to particular companies. It leverages named entity recognition (NER) to identify company mentions accurately and assesses the relevance of news articles to these entities. This approach ensures users receive tailored news insights, summaries, and sentiment analysis, providing a deeper understanding of a company's news ecosystem.
 
+## Application's backend architecture
+<center>
+<img src='static/img/styx_architecture.png' width=800>
+</center> 
+
 ## Technologies and Tools
 
 This project is built using a robust stack of technologies and tools designed for scalability, efficiency, and ease of development:
