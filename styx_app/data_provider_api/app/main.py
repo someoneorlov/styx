@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import ner_data_routes
+from .routes import ner_data_routes, frontend_data_routes
 
 app = FastAPI()
 
@@ -13,6 +13,9 @@ app.add_middleware(
     allow_headers=["*"],  # Allows all headers
 )
 
+app.include_router(
+    frontend_data_routes.router, prefix="/front-data", tags=["FRONT_DATA"]
+)
 app.include_router(ner_data_routes.router, prefix="/ner-data", tags=["NER_DATA"])
 # app.include_router(
 #     semantic_data_routes.router, prefix="/semantic-data", tags=["SEMANTIC_DATA"]

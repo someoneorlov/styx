@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from datetime import datetime
 from typing import Optional, List
 from pydantic import ConfigDict
 
@@ -59,3 +60,17 @@ class NERInferenceResultBatch(OurBaseModel):
 
 class NewsIDs(OurBaseModel):
     news_ids: List[int]
+
+
+class ArticleMainPage(OurBaseModel):
+    title: str
+    text: str
+    publish_date: datetime
+    canonical_link: str
+    media_link: str
+    media_title: str
+    salient_entities_set: List[str]
+
+
+class ArticlesMPBatch(OurBaseModel):
+    articles: List[ArticleMainPage]
