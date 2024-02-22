@@ -1,14 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
-from pydantic import ConfigDict
-
-# from .db_models import RawNewsArticle
 
 
 class OurBaseModel(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     class Config:
         orm_mode = True
 
@@ -21,15 +16,6 @@ class BaseNewsItem(OurBaseModel):
 
 class NERNewsItem(BaseNewsItem):
     is_processed_ner: Optional[bool] = False
-
-    # @classmethod
-    # def from_orm(cls, orm_model: RawNewsArticle):
-    #     return cls(
-    #         id=orm_model.id,
-    #         title=orm_model.title,
-    #         text=orm_model.text,
-    #         is_processed_ner=orm_model.is_processed_ner,
-    #     )
 
 
 class NERNewsBatch(OurBaseModel):
@@ -73,4 +59,4 @@ class ArticleMainPage(OurBaseModel):
 
 
 class ArticlesMPBatch(OurBaseModel):
-    articles: List[ArticleMainPage]
+    front_news_items: List[ArticleMainPage]

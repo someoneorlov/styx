@@ -27,7 +27,7 @@ def get_latest_news(db: Session, batch_size=10) -> ArticlesMPBatch:
                 NerResults.salient_entities_set,
             )
             .join(
-                NerResults, isouter=True
+                NerResults, isouter=False
             )  # Adjust based on your data model requirements
             .order_by(RawNewsArticle.publish_date.desc())
             .limit(batch_size)
@@ -58,7 +58,7 @@ def get_latest_news(db: Session, batch_size=10) -> ArticlesMPBatch:
             )
             front_news_items.append(article_data)
 
-        return ArticlesMPBatch(articles=front_news_items)
+        return ArticlesMPBatch(front_news_items=front_news_items)
     except SQLAlchemyError as e:
         logger.error(f"Error fetching latest news from DB: {e}", exc_info=True)
         raise
