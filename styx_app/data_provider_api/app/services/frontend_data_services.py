@@ -14,26 +14,30 @@ from ..models import (
 logger = setup_logger(__name__)
 
 
-def get_latest_news(db: Session, batch_size=10) -> ArticlesMPBatch:
+def fetch_news(
+    db: Session, company_name: str = None, batch_size: int = 10
+) -> ArticlesMPBatch:
     try:
-        latest_news_query = (
-            db.query(
-                RawNewsArticle.title,
-                RawNewsArticle.text,
-                RawNewsArticle.publish_date,
-                RawNewsArticle.canonical_link,
-                RawNewsArticle.media_link,
-                RawNewsArticle.media_title,
-                NerResults.salient_entities_set,
-            )
-            .join(
-                NerResults, isouter=False
-            )  # Adjust based on your data model requirements
-            .order_by(RawNewsArticle.publish_date.desc())
-            .limit(batch_size)
-        )
+        query = db.query(
+            RawNewsArticle.title,
+            RawNewsArticle.text,
+            RawNewsArticle.publish_date,
+            RawNewsArticle.canonical_link,
+            RawNewsArticle.media_link,
+            RawNewsArticle.media_title,
+            NerResults.salient_entities_set,
+        ).join(NerResults, isouter=False)
 
-        latest_news_batch = latest_news_query.all()
+        # Conditional filtering based on company_name
+        if company_name:
+            # Assuming company_name is already in the matched format
+            query = query.filter(
+                NerResults.salient_entities_set.op("@>")([company_name])
+            )
+
+        query = query.order_by(RawNewsArticle.publish_date.desc()).limit(batch_size)
+
+        latest_news_batch = query.all()
 
         front_news_items: List[ArticleMainPage] = []
         for (
@@ -58,7 +62,7 @@ def get_latest_news(db: Session, batch_size=10) -> ArticlesMPBatch:
             )
             front_news_items.append(article_data)
 
-        return ArticlesMPBatch(front_news_items=front_news_items)
+        return ArticlesMPBatch(articles=front_news_items)
     except SQLAlchemyError as e:
-        logger.error(f"Error fetching latest news from DB: {e}", exc_info=True)
+        logger.error(f"Error fetching news from DB: {e}", exc_info=True)
         raise

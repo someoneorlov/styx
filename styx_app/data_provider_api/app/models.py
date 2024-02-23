@@ -59,4 +59,4 @@ class ArticleMainPage(OurBaseModel):
 
 
 class ArticlesMPBatch(OurBaseModel):
-    front_news_items: List[ArticleMainPage]
+    articles: List[ArticleMainPage]
