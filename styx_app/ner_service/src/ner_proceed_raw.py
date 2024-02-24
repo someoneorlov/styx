@@ -1,5 +1,6 @@
 import os
 import requests
+import redis
 import backoff
 from typing import List
 from airflow.models import TaskInstance
@@ -72,6 +73,45 @@ def transform_ner_results_for_saving(ner_results, env: str = "test"):
         for result in ner_results
     ]
     return transformed_results
+
+
+def save_ner_results_to_redis(ner_results, env: str = "test", **kwargs):
+    log_dir = log_dir_config(env)
+    logger = get_task_logger("save_ner_results_to_redis", log_dir)
+    logger.info("Saving NER results to Redis...")
+
+    try:
+        # Initialize Redis client
+        redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=int(os.getenv("REDIS_PORT", 6379)),
+            password=os.getenv("REDIS_PASS", None),
+            db=0,
+            decode_responses=True,  # Automatically decode responses to Python strings
+        )
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis: {e}")
+        return  # Exit the function if Redis connection fails
+
+    # Iterate over each result
+    for result in ner_results:
+        # Process each mention in headline_mentions and body_text_mentions
+        for mention_list in [result["headline_mentions"], result["body_text_mentions"]]:
+            for mention in mention_list:
+                # Extracting mention and linked entity
+                mention_text = mention[2]
+                linked_entity = mention[3]
+
+                # Prepare keys in original, lowercase, and uppercase
+                keys = [mention_text, mention_text.lower(), mention_text.upper()]
+
+                # Attempt to save each key with the linked entity value to Redis
+                try:
+                    for key in keys:
+                        redis_key = f"ner_mention:{key}"
+                        redis_client.set(redis_key, linked_entity)
+                except Exception as e:
+                    logger.error(f"Failed to save {redis_key} to Redis: {e}")
 
 
 def make_request(url, method="get", env="test", **kwargs):
@@ -157,8 +197,11 @@ def process_news_through_ner(env: str = "test", **kwargs):
             json=articles_input,
         )
         response.raise_for_status()
-        ner_results = response.json()
+        ner_results = response.json()["annotated_articles"]
+        processed_ids = response.json()["processed_ids"]
         logger.info(f"Successfully processed {len(ner_results)} items through NER.")
+        ti.xcom_push(key="ner_results", value=ner_results)
+        ti.xcom_push(key="processed_news_ids", value=processed_ids)
         return ner_results
     except Exception as e:
         logger.error(f"Error processing news through NER: {e}")
@@ -194,7 +237,7 @@ def mark_news_as_processed(env: str = "test", **context):
     logger = get_task_logger("mark_news_as_processed", log_dir)
     DATA_PROVIDER_API_URL = env_var_confin("DATA_PROVIDER_API_URL", env)
     news_ids = context["ti"].xcom_pull(
-        task_ids="save_ner_results", key="processed_news_ids"
+        task_ids="process_news_through_ner", key="processed_news_ids"
     )
     logger.info(f"Marking {len(news_ids)} news items as processed...")
     try:

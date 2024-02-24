@@ -1,3 +1,5 @@
+import os
+import redis
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from ..db_models import (
@@ -18,6 +20,30 @@ def fetch_news(
     db: Session, company_name: str = None, batch_size: int = 10
 ) -> ArticlesMPBatch:
     try:
+        redis_client = redis.Redis(
+            host=os.getenv("REDIS_HOST", "localhost"),
+            port=os.getenv("REDIS_PORT", 6379),
+            password=os.getenv("REDIS_PASS", None),
+            db=0,
+            decode_responses=True,  # Decode responses from bytes to str
+        )
+    except Exception as e:
+        logger.error(f"Failed to connect to Redis: {e}")
+        raise
+
+    try:
+        if company_name:
+            # Attempt to find a matching entity in Redis
+            redis_key = f"ner_mention:{company_name.lower()}"  # Example key format
+            matched_company_name = redis_client.get(redis_key)
+            if matched_company_name:
+                company_name = matched_company_name
+            else:
+                logger.info(
+                    f"No Redis match found for {company_name}, "
+                    "proceeding with original value."
+                )
+
         query = db.query(
             RawNewsArticle.title,
             RawNewsArticle.text,

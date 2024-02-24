@@ -8,6 +8,7 @@ from styx_app.ner_service.src.ner_proceed_raw import (
     save_ner_results,
     mark_news_as_processed,
     transform_ner_results_for_saving,
+    save_ner_results_to_redis,
 )
 
 env = "test"
@@ -30,6 +31,15 @@ def prepare_ner_results_for_saving(env: str = "test", **kwargs):
     ner_results = ti.xcom_pull(task_ids="process_news_through_ner")
     transformed_results = transform_ner_results_for_saving(ner_results, env)
     ti.xcom_push(key="transformed_ner_results", value=transformed_results)
+
+
+def save_to_redis_callable(env: str = "test", **kwargs):
+    """Wrapper callable for the Airflow task to save NER results to Redis."""
+    ti = kwargs["ti"]
+    # Pull NER results directly from `process_news_through_ner` task
+    ner_results = ti.xcom_pull(task_ids="process_news_through_ner")
+    # Call the function to save results to Redis
+    save_ner_results_to_redis(ner_results, env, **kwargs)
 
 
 def save_transformed_ner_results(env: str = "test", **kwargs):
@@ -64,7 +74,7 @@ with DAG(
     t1 = PythonOperator(
         task_id="fetch_unprocessed_news",
         python_callable=fetch_unprocessed_news,
-        op_kwargs={"batch_size": 50, "env": env},
+        op_kwargs={"batch_size": 5, "env": env},
         provide_context=True,
     )
 
@@ -78,6 +88,13 @@ with DAG(
     prepare_results = PythonOperator(
         task_id="prepare_ner_results_for_saving",
         python_callable=prepare_ner_results_for_saving,
+        op_kwargs={"env": env},
+        provide_context=True,
+    )
+
+    save_to_redis = PythonOperator(
+        task_id="save_ner_results_to_redis",
+        python_callable=save_to_redis_callable,
         op_kwargs={"env": env},
         provide_context=True,
     )
@@ -96,4 +113,5 @@ with DAG(
         provide_context=True,
     )
 
-    t1 >> t2 >> prepare_results >> t3 >> t4
+    t1 >> t2 >> [prepare_results, save_to_redis]
+    prepare_results >> t3 >> t4

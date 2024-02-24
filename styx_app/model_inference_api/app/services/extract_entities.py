@@ -18,6 +18,7 @@ def extract_salient_entities(
 
     for row in data:
         row = row.dict()
+        processed_ids.append(row[id])
 
         if len(row[title].split()) > 3300 or len(row[article].split()) > 3300:
             logger.warning(
@@ -75,10 +76,9 @@ def extract_salient_entities(
                 "salient_entities_set": salient_entities_org_set,
             }
         )
-        processed_ids.append(row[id])
     logger.info(
         f"Successfully processed {len(annotated_articles)} "
         f"articles with IDs: IDs: {processed_ids}"
     )
 
-    return annotated_articles
+    return annotated_articles, processed_ids

@@ -54,9 +54,18 @@ async def health_check():
 @router.post("/extract_entities")
 async def perform_ner(input: ArticlesInput):
     try:
-        results = extract_salient_entities(input.articles, API_URL)
-        logger.info(f"Entity extraction successful for {len(input.articles)} articles.")
-        return results
+        # Unpack the returned tuple into annotated_articles and processed_ids
+        annotated_articles, processed_ids = extract_salient_entities(
+            input.articles, API_URL
+        )
+        logger.info(
+            f"Entity extraction successful for {len(input.articles)} articles. "
+            f"Processed IDs: {processed_ids}"
+        )
+        return {
+            "annotated_articles": annotated_articles,
+            "processed_ids": processed_ids,
+        }
     except (json.JSONDecodeError, ValueError) as e:
         logger.error(f"Entity extraction failed: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
