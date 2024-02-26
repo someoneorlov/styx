@@ -224,6 +224,33 @@ services:
       redis_test:
         condition: service_started
 
+  nginx_prod:
+    build: 
+      context: .
+      dockerfile: ./styx_app/nginx/prod/Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"  # Add this line if you haven't already to expose HTTPS port
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+    #   - ./styx_app/frontend/test/build:/usr/share/nginx/html
+    depends_on:
+      - data_provider_api_prod
+
+  nginx_test:
+    build: 
+      context: .
+      dockerfile: ./styx_app/nginx/test/Dockerfile
+    ports:
+      - "81:80"
+      - "8443:443"  # Add this line if you haven't already to expose HTTPS port
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
+      - .htpasswd:/etc/nginx/.htpasswd 
+    #   - ./styx_app/frontend/test/build:/usr/share/nginx/html
+    depends_on:
+      - data_provider_api_test
+
   scraper:
     build:
       context: styx_app/scraper_service

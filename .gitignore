@@ -59,6 +59,9 @@ target/
 # DotEnv configuration
 .env
 
+# Nginx password
+.htpasswd
+
 # Database
 *.db
 *.rdb
