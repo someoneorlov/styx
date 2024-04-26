@@ -79,13 +79,16 @@ def save_ner_results_to_redis(ner_results, env: str = "test", **kwargs):
     log_dir = log_dir_config(env)
     logger = get_task_logger("save_ner_results_to_redis", log_dir)
     logger.info("Saving NER results to Redis...")
+    REDIS_HOST = env_var_confin("REDIS_HOST", env)
+    REDIS_PORT = env_var_confin("REDIS_PORT", env)
+    REDIS_PASS = env_var_confin("REDIS_PASS", env)
 
     try:
         # Initialize Redis client
         redis_client = redis.Redis(
-            host=os.getenv("REDIS_HOST", "localhost"),
-            port=int(os.getenv("REDIS_PORT", 6379)),
-            password=os.getenv("REDIS_PASS", None),
+            host=os.getenv(REDIS_HOST, "localhost"),
+            port=int(os.getenv(REDIS_PORT, 6379)),
+            password=os.getenv(REDIS_PASS, None),
             db=0,
             decode_responses=True,  # Automatically decode responses to Python strings
         )

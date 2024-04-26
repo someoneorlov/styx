@@ -30,9 +30,12 @@ x-airflow-common:
     DB_NAME: ${POSTGRES_DB_PROD}
     DB_USER: ${DB_USER_PROD}
     DB_PASS: ${DB_PASS_PROD}
-    REDIS_HOST: redis_test
-    REDIS_PORT: 6379
-    REDIS_PASS: ${REDIS_PASS_TEST}
+    REDIS_HOST_PROD: redis_prod
+    REDIS_PORT_PROD: 6379
+    REDIS_PASS_PROD: ${REDIS_PASS_PROD}
+    REDIS_HOST_TEST: redis_test
+    REDIS_PORT_TEST: 6380
+    REDIS_PASS_TEST: ${REDIS_PASS_TEST}
     MODEL_INFERENCE_API_URL_PROD: http://inference_api_prod:8001
     MODEL_INFERENCE_API_URL_TEST: http://inference_api_test:8002
     DATA_PROVIDER_API_URL_PROD: http://data_provider_api_prod:8003
@@ -143,10 +146,20 @@ services:
       db_test:
         condition: service_healthy
 
-  redis_test:
+  redis_prod:
     image: redis:7.2.4
     ports:
       - "6379:6379"
+    volumes:
+      - redis-data-prod:/data
+    environment:
+      REDIS_PASS: ${REDIS_PASS_PROD}
+    command: ["redis-server", "--requirepass", "${REDIS_PASS_PROD}", "--appendonly", "yes"]
+
+  redis_test:
+    image: redis:7.2.4
+    ports:
+      - "6380:6379"
     volumes:
       - redis-data-test:/data
     environment:
@@ -533,4 +546,5 @@ volumes:
   postgres-db-volume:
   prometheus-data:
   grafana-data:
+  redis-data-prod:
   redis-data-test:
