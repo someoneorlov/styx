@@ -82,16 +82,21 @@ def save_ner_results_to_redis(ner_results, env: str = "test", **kwargs):
     REDIS_HOST = env_var_confin("REDIS_HOST", env)
     REDIS_PORT = env_var_confin("REDIS_PORT", env)
     REDIS_PASS = env_var_confin("REDIS_PASS", env)
+    logger.info(
+        f"Connecting to Redis at {REDIS_HOST}:{REDIS_PORT} with password provided: {'yes' if REDIS_PASS else 'no'}"
+    )
 
     try:
         # Initialize Redis client
         redis_client = redis.Redis(
-            host=os.getenv(REDIS_HOST, "localhost"),
-            port=int(os.getenv(REDIS_PORT, 6379)),
-            password=os.getenv(REDIS_PASS, None),
+            host=REDIS_HOST,
+            port=int(REDIS_PORT),
+            password=REDIS_PASS,
             db=0,
             decode_responses=True,  # Automatically decode responses to Python strings
         )
+        redis_client.ping()  # Test the connection
+        logger.info("Connected to Redis successfully.")
     except Exception as e:
         logger.error(f"Failed to connect to Redis: {e}")
         return  # Exit the function if Redis connection fails
