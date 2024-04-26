@@ -65,7 +65,7 @@ x-airflow-common:
       condition: service_healthy
     db_prod:
       condition: service_healthy
-    redis_test:
+    redis_prod:
         condition: service_started
 
 services:
