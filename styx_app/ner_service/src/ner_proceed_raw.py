@@ -82,9 +82,6 @@ def save_ner_results_to_redis(ner_results, env: str = "test", **kwargs):
     REDIS_HOST = env_var_confin("REDIS_HOST", env)
     REDIS_PORT = env_var_confin("REDIS_PORT", env)
     REDIS_PASS = env_var_confin("REDIS_PASS", env)
-    logger.info(
-        f"Connecting to Redis at {REDIS_HOST}:{REDIS_PORT} with password provided: {'yes' if REDIS_PASS else 'no'}"
-    )
 
     try:
         # Initialize Redis client

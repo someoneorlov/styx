@@ -365,7 +365,11 @@ services:
       DB_PASS: ${DB_PASS_PROD}
       JUPYTER_ENABLE_LAB: 'yes'
       JUPYTER_TOKEN: ${JUPYTER_TOKEN}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: us-east-1
     volumes:
+      - mlflow-data:/mlflow
       - ./data/external:/home/jovyan/data/external:ro
       - ./data/postgres_data:/home/jovyan/data/postgres_data:ro
       - ./data/REL:/home/jovyan/data/REL:ro
@@ -373,6 +377,39 @@ services:
       - ./notebooks:/home/jovyan/notebooks:rw
     ports:
       - "8888:8888"
+
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
+    ports:
+      - "5000:5000"
+    environment:
+      MLFLOW_BACKEND_URI: ${MLFLOW_BACKEND_URI}
+      MLFLOW_ARTIFACT_ROOT: ${MLFLOW_ARTIFACT_ROOT}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_DEFAULT_REGION: us-east-1
+    volumes:
+      - mlflow-data:/mlflow
+    depends_on:
+      mlflow_db:
+        condition: service_healthy
+        
+  mlflow_db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mlflow
+      POSTGRES_PASSWORD: mlflow
+      POSTGRES_DB: mlflow
+    volumes:
+      - mlflow-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mlflow -d mlflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
 
   rel:
     image: informagi/rel:docker_build2-f2845be
@@ -548,3 +585,5 @@ volumes:
   grafana-data:
   redis-data-prod:
   redis-data-test:
+  mlflow-db-data:
+  mlflow-data:

@@ -1,7 +1,7 @@
 sqlalchemy==2.0.25
 # requests==2.31.0
 fastapi==0.109.1
-pydantic==1.10.7
+pydantic==1.10.13
 uvicorn==0.21.1
 psycopg2-binary==2.9.7
 redis==5.0.1
