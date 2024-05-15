@@ -1,13 +1,9 @@
-# Use an official Python runtime as a base image
 FROM python:3.10-slim
 
-# Set the working directory in the container
 WORKDIR /mlflow
 
-# Install MLflow and necessary libraries
-RUN pip install "mlflow[extras]==2.12.1" psycopg2-binary boto3==1.34.93
+RUN pip install "mlflow[extras]==2.12.1" psycopg2-binary boto3==1.34.51
 
-# Expose the port MLflow will run on
 EXPOSE 5000
 
 CMD mlflow server \

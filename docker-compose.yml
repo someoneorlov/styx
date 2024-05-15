@@ -370,11 +370,11 @@ services:
       AWS_DEFAULT_REGION: us-east-1
     volumes:
       - mlflow-data:/mlflow
-      - ./data/external:/home/jovyan/data/external:ro
-      - ./data/postgres_data:/home/jovyan/data/postgres_data:ro
-      - ./data/REL:/home/jovyan/data/REL:ro
-      - ./data/interim:/home/jovyan/data/interim:rw
-      - ./notebooks:/home/jovyan/notebooks:rw
+      - ./data/external:/home/sagemaker-user/data/external:ro
+      - ./data/postgres_data:/home/sagemaker-user/data/postgres_data:ro
+      - ./data/REL:/home/sagemaker-user/data/REL:ro
+      - ./data/interim:/home/sagemaker-user/data/interim:rw
+      - ./notebooks:/home/sagemaker-user/styx_notebooks/notebooks:rw
     ports:
       - "8888:8888"
 

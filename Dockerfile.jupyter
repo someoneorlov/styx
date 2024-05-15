@@ -1,9 +1,15 @@
-FROM quay.io/jupyter/pytorch-notebook:python-3.11
+FROM public.ecr.aws/sagemaker/sagemaker-distribution:1.8.0-cpu
 
 USER root
 
+RUN apt-get update && apt-get install -y vim
+
+USER $MAMBA_USER
+
 COPY requirements/requirements_jupyter.txt /requirements/
 
-RUN pip install --no-cache-dir -r /requirements/requirements_jupyter.txt
+RUN micromamba install --file /requirements/requirements_jupyter.txt --yes --channel conda-forge --name base
 
-USER jovyan
+RUN pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+
+ENTRYPOINT ["entrypoint-jupyter-server"]
