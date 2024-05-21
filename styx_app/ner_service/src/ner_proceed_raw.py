@@ -218,9 +218,15 @@ def save_ner_results(ner_results: List[dict], env: str = "test", **context):
     log_dir = log_dir_config(env)
     logger = get_task_logger("save_ner_results", log_dir)
     DATA_PROVIDER_API_URL = env_var_confin("DATA_PROVIDER_API_URL", env)
+    processed_ids = [result["raw_news_id"] for result in ner_results]
+    context["ti"].xcom_push(key="processed_news_ids", value=processed_ids)
+
+    if len(processed_ids) == 0:
+        logger.info("No NER results to save.")
+        return processed_ids
+
     try:
-        logger.info("Saving NER results...")
-        processed_ids = [result["raw_news_id"] for result in ner_results]
+        logger.info(f"Saving {len(processed_ids)} NER results...")
         response = make_request(
             f"{DATA_PROVIDER_API_URL}/ner-data/ner_save_results",
             method="post",
@@ -228,7 +234,6 @@ def save_ner_results(ner_results: List[dict], env: str = "test", **context):
             json={"ner_inference_results": ner_results},
         )
         response.raise_for_status()
-        context["ti"].xcom_push(key="processed_news_ids", value=processed_ids)
         logger.info(f"NER results saved successfully for IDs: {processed_ids}")
         return processed_ids
     except Exception as e:
@@ -244,8 +249,12 @@ def mark_news_as_processed(env: str = "test", **context):
     news_ids = context["ti"].xcom_pull(
         task_ids="process_news_through_ner", key="processed_news_ids"
     )
-    logger.info(f"Marking {len(news_ids)} news items as processed...")
+    if news_ids is None or len(news_ids) == 0:
+        logger.info("No news items to mark as processed.")
+        return
+
     try:
+        logger.info(f"Marking {len(news_ids)} news items as processed...")
         response = make_request(
             f"{DATA_PROVIDER_API_URL}/ner-data/ner_mark_processed",
             method="post",
@@ -253,7 +262,7 @@ def mark_news_as_processed(env: str = "test", **context):
             json={"news_ids": news_ids},
         )
         response.raise_for_status()
-        logger.info("News items marked as processed successfully.")
+        logger.info(f"{len(news_ids)} news items marked as processed successfully.")
         return response.json()
     except Exception as e:
         logger.error(f"Failed to mark news items as processed: {e}")

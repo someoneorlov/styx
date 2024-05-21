@@ -27,9 +27,12 @@ x-airflow-common:
     # for other purpose (development, test and especially production usage) build/extend Airflow image.
     # _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
     SCRAPER_URL: ${SCRAPER_URL}
-    DB_NAME: ${POSTGRES_DB_PROD}
-    DB_USER: ${DB_USER_PROD}
-    DB_PASS: ${DB_PASS_PROD}
+    DB_NAME_PROD: ${POSTGRES_DB_PROD}
+    DB_USER_PROD: ${DB_USER_PROD}
+    DB_PASS_PROD: ${DB_PASS_PROD}
+    DB_NAME_TEST: ${POSTGRES_DB_TEST}
+    DB_USER_TEST: ${DB_USER_TEST}
+    DB_PASS_TEST: ${DB_PASS_TEST}
     REDIS_HOST_PROD: redis_prod
     REDIS_PORT_PROD: 6379
     REDIS_PASS_PROD: ${REDIS_PASS_PROD}
@@ -205,6 +208,9 @@ services:
       DB_NAME: ${POSTGRES_DB_PROD}
       DB_USER: ${DB_USER_PROD}
       DB_PASS: ${DB_PASS_PROD}
+      REDIS_HOST: redis_prod
+      REDIS_PORT: 6379
+      REDIS_PASS: ${REDIS_PASS_PROD}
     ports:
       - "8003:8003"
     volumes:
@@ -212,6 +218,8 @@ services:
     depends_on:
       db_prod:
         condition: service_healthy
+      redis_prod:
+        condition: service_started
 
   data_provider_api_test:
     build:
@@ -264,7 +272,7 @@ services:
     depends_on:
       - data_provider_api_test
 
-  scraper:
+  scraper_prod:
     build:
       context: styx_app/scraper_service
       dockerfile: Dockerfile
@@ -279,6 +287,23 @@ services:
       - ./logs:/var/log
     depends_on:
       db_prod:
+        condition: service_healthy
+
+  scraper_test:
+    build:
+      context: styx_app/scraper_service
+      dockerfile: Dockerfile
+    image: styx_scraper_img
+    environment:
+      DB_HOST: db_test
+      DB_NAME: ${POSTGRES_DB_TEST}
+      DB_USER: ${DB_USER_TEST}
+      DB_PASS: ${DB_PASS_TEST}
+      SCRAPER_URL: ${SCRAPER_URL}
+    volumes:
+      - ./logs_test:/var/log
+    depends_on:
+      db_test:
         condition: service_healthy
 
   statsd-exporter:

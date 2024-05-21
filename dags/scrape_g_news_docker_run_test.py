@@ -18,22 +18,22 @@ default_args = {
 
 
 with DAG(
-    "scrape_google_news_docker_run",
+    "scrape_google_news_test",
     default_args=default_args,
-    schedule_interval="5 * * * *",
+    schedule_interval="15 * * * *",
     catchup=False,
 ) as dag:
     t1 = DockerOperator(
         task_id="run_scrap_container",
         image="styx_scraper_img",
-        container_name="styx_scraper_cont",
+        container_name="styx_scraper_cont_test",
         api_version="auto",
         auto_remove=True,
         environment={
-            "DB_HOST": "db_prod",
-            "DB_NAME": os.getenv("DB_NAME", "default_db_name_inside"),
-            "DB_USER": os.getenv("DB_USER", "default_db_user_inside"),
-            "DB_PASS": os.getenv("DB_PASS", "default_db_password_inside"),
+            "DB_HOST": "db_test",
+            "DB_NAME": os.getenv("DB_NAME_TEST", "default_db_name_inside"),
+            "DB_USER": os.getenv("DB_USER_TEST", "default_db_user_inside"),
+            "DB_PASS": os.getenv("DB_PASS_TEST", "default_db_password_inside"),
             "SCRAPER_URL": os.getenv("SCRAPER_URL", "default_scraper_url_inside"),
         },
         command=[
@@ -46,7 +46,7 @@ with DAG(
         mount_tmp_dir=False,
         mounts=[
             Mount(
-                source="/home/ec2-user/projects/styx/logs",
+                source="/home/ec2-user/projects/styx/logs_test",
                 target="/var/log",
                 type="bind",
             )

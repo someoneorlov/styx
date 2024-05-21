@@ -1,0 +1,15 @@
+# Use a base image with Python and necessary tools
+FROM python:3.10-slim
+
+# Install necessary libraries
+RUN apt-get update && apt-get install -y sshpass openssh-client autossh curl && \
+    pip install requests psycopg2-binary
+
+# Copy the script to the container
+COPY raw_data_transfer_test.py /app/raw_data_transfer_test.py
+
+# Create directory for SSH keys
+RUN mkdir /root/.ssh/
+
+# Run the application
+ENTRYPOINT ["python", "/app/raw_data_transfer_test.py"]

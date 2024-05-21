@@ -97,3 +97,7 @@ target/
 
 # Mypy cache
 .mypy_cache/
+
+# Ignore SSH keys
+id_aws_ecs_task
+id_aws_ecs_task.pub
