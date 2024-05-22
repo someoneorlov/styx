@@ -5,15 +5,12 @@ BEGIN
     ) THEN
         CREATE TABLE aws_raw_news_articles (
             id SERIAL PRIMARY KEY,
-            aws_raw_news_article_id INTEGER NOT NULL,
+            raw_news_article_id INTEGER NOT NULL,
             title TEXT NOT NULL,
             text TEXT NOT NULL,
             publish_date TIMESTAMP WITH TIME ZONE,
             publish_date_source VARCHAR(255),
             authors TEXT[],
-            canonical_link TEXT,
-            feed_link TEXT,
-            media_link TEXT,
             media_title TEXT,
             is_processed_ner BOOLEAN DEFAULT FALSE,
             is_processed_sentiment BOOLEAN DEFAULT FALSE,

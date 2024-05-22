@@ -44,3 +44,32 @@ def fetch_unprocessed_news(db: Session, batch_size=100) -> ArticleRawAWSBatch:
     except SQLAlchemyError as e:
         logger.error(f"Error fetching unprocessed news from DB: {e}", exc_info=True)
         raise
+
+
+def mark_news_as_processed(db: Session, news_ids: List[int]):
+    try:
+        # Retrieve and lock the rows to be updated to prevent race conditions
+        articles_to_update = (
+            db.query(RawNewsArticle)
+            .filter(
+                RawNewsArticle.id.in_(news_ids),
+                RawNewsArticle.is_processed_aws == False,  # noqa: E712
+            )
+            .with_for_update()
+            .all()
+        )  # Lock these rows
+        if not articles_to_update:
+            logger.info(f"No news items found to mark as processed for IDs: {news_ids}")
+            return False
+        # Mark them as processed
+        for article in articles_to_update:
+            article.is_processed_aws = True
+        db.commit()
+        logger.info(f"Marked news items as processed: {news_ids}")
+        return True
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(
+            f"Failed to mark news items as processed {news_ids}: {e}", exc_info=True
+        )
+        return False
