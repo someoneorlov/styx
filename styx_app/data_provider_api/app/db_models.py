@@ -30,6 +30,7 @@ class RawNewsArticle(Base):
     title_hash = Column(String(64))
     date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
     is_processed_ner = Column(Boolean, default=False)
+    is_processed_aws = Column(Boolean, default=False)
     ner_results = relationship(
         "NerResults", back_populates="raw_news_article"
     )  # Relationship to NerResults

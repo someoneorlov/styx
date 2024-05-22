@@ -60,3 +60,17 @@ class ArticleMainPage(OurBaseModel):
 
 class ArticlesMPBatch(OurBaseModel):
     articles: List[ArticleMainPage]
+
+
+class ArticleRawAWS(OurBaseModel):
+    id: int
+    title: str
+    text: str
+    publish_date: datetime
+    publish_date_source: str
+    authors: List[str]
+    media_title: str
+
+
+class ArticleRawAWSBatch(OurBaseModel):
+    articles: List[ArticleRawAWS]
