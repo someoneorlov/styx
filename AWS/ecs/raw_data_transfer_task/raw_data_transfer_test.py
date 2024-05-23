@@ -1,91 +1,94 @@
 import os
-import base64
-import subprocess
-import time
 import requests
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from styx_packages.styx_logger.logging_config import setup_logger
+from styx_packages.data_connector.db_connector import get_engine, session_factory
+from styx_packages.data_connector.db_models import AWSRawNewsArticle
+from styx_packages.data_connector.api_connector import make_request
+from styx_packages.data_connector.ssh_connector import setup_ssh
 
-from styx_packages.db_connector.db_connector import get_engine, session_factory
-from styx_packages.db_connector.db_models import AWSRawNewsArticle
+logger = setup_logger(__name__)
 
+setup_ssh()
 
-# Decode SSH keys and config from environment variables
-ssh_private_key = base64.b64decode(os.environ["SSH_PRIVATE_KEY"]).decode("utf-8")
-ssh_public_key = base64.b64decode(os.environ["SSH_PUBLIC_KEY"]).decode("utf-8")
-ssh_config = base64.b64decode(os.environ["SSH_CONFIG"]).decode("utf-8")
-
-# AWS RDS connection parameters
 AWS_DB_HOST = os.getenv("AWS_DB_HOST")
 AWS_DB_PORT = os.getenv("AWS_DB_PORT")
 AWS_DB_NAME = os.getenv("AWS_DB_NAME")
 AWS_DB_USER = os.getenv("AWS_DB_USER")
 AWS_DB_PASS = os.getenv("AWS_DB_PASS")
-
-# Write the SSH private key
-with open("/root/.ssh/id_aws_ecs_task", "w") as f:
-    f.write(ssh_private_key)
-    os.chmod("/root/.ssh/id_aws_ecs_task", 0o600)
-
-# Write the SSH public key
-with open("/root/.ssh/id_aws_ecs_task.pub", "w") as f:
-    f.write(ssh_public_key)
-    os.chmod("/root/.ssh/id_aws_ecs_task.pub", 0o600)
-
-# Write the SSH config
-with open("/root/.ssh/config", "w") as f:
-    f.write(ssh_config)
-    os.chmod("/root/.ssh/config", 0o600)
-
-# Create SSH tunnel using autossh
-autossh_command = [
-    "autossh",
-    "-M",
-    "0",
-    "-f",
-    "-N",
-    "-L",
-    "8004:127.0.0.1:8004",
-    "ec2-user@194.242.122.57",
-]
-subprocess.Popen(autossh_command)
-time.sleep(3)
+DATA_PROVIDER_API_URL = os.getenv("DATA_PROVIDER_API_URL")
 
 
-# Function to fetch data from data_provider_api
-def fetch_data():
+def fetch_data(batch_size: int = 5) -> list:
     try:
-        response = requests.get(
-            "http://localhost:8004/aws-data/aws_unprocessed_news?batch_size=2"
+        logger.info(
+            f"Fetching {batch_size} unprocessed news from {DATA_PROVIDER_API_URL}"
         )
-        if response.status_code == 200:
-            return response.json()["articles"]
+        response = make_request(
+            f"{DATA_PROVIDER_API_URL}/aws-data/aws_unprocessed_news",
+            method="get",
+            params={"batch_size": batch_size},
+        )
+        response.raise_for_status()
+        data = response.json().get("articles", [])
+        if not data:
+            logger.info("No new data fetched from data_provider_api")
         else:
-            print(f"Requests failed with status code: {response.status_code}")
-            return None
+            logger.info(f"Successfully fetched {len(data)} unprocessed news items.")
+        return data
     except requests.ConnectionError as e:
-        print(f"Requests failed to connect: {e}")
-        return None
+        logger.error(f"Failed to connect to fetch raw news: {e}")
+        return []
+    except requests.HTTPError as e:
+        logger.error(f"HTTP error occurred: {e}")
+        return []
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        raise
 
 
-# Function to connect to AWS RDS and perform read/write operations
-def test_rds_operations(data):
+def mark_news_as_processed(news_ids) -> None:
+    if news_ids is None or len(news_ids) == 0:
+        logger.info("No news items to mark as processed.")
+        return
     try:
-        # Get the database engine and session factory
+        logger.info(f"Marking {len(news_ids)} news items as processed...")
+        response = make_request(
+            f"{DATA_PROVIDER_API_URL}/aws-data/aws_mark_processed",
+            method="post",
+            json={"news_ids": news_ids},
+        )
+        response.raise_for_status()
+        logger.info(f"{len(news_ids)} news items marked as processed successfully.")
+    except requests.ConnectionError as e:
+        logger.error(f"Failed to connect to mark news as processed: {e}")
+    except requests.HTTPError as e:
+        logger.error(f"HTTP error occurred: {e}")
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        raise
+
+
+def handle_rds_operations(data):
+    successfully_written_ids = []
+    logger.info(f"Preparing to insert {len(data)} articles into the DB...")
+    try:
         engine = get_engine(
-            host=AWS_DB_HOST,
-            port=AWS_DB_PORT,
-            db=AWS_DB_NAME,
-            user=AWS_DB_USER,
-            password=AWS_DB_PASS,
+            AWS_DB_HOST, AWS_DB_PORT, AWS_DB_NAME, AWS_DB_USER, AWS_DB_PASS
         )
         SessionLocal = session_factory(engine)
-
-        # Create the session
         db = SessionLocal()
 
-        # Insert data into aws_raw_news_articles table
-        successfully_written_ids = []
         for item in data:
-            raw_news_article = AWSRawNewsArticle(
+            existing_article = (
+                db.query(AWSRawNewsArticle)
+                .filter(AWSRawNewsArticle.raw_news_article_id == item["id"])
+                .first()
+            )
+            if existing_article:
+                logger.info(f"Article with ID {item['id']} already exists.")
+                continue
+            new_article = AWSRawNewsArticle(
                 raw_news_article_id=item["id"],
                 title=item["title"],
                 text=item["text"],
@@ -94,40 +97,37 @@ def test_rds_operations(data):
                 authors=item.get("authors"),
                 media_title=item.get("media_title"),
             )
-            db.add(raw_news_article)
+            db.add(new_article)
             successfully_written_ids.append(item["id"])
         db.commit()
-
-        # Close the session
-        db.close()
-
-        return successfully_written_ids
+        logger.info(f"Successfully inserted {len(successfully_written_ids)} articles.")
+    except IntegrityError as e:
+        db.rollback()
+        logger.error(f"IntegrityError while inserting articles: {e}")
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"SQLAlchemyError while inserting articles: {e}")
     except Exception as e:
-        print(f"Error: {e}")
-        return []
-
-
-# Function to mark news as processed
-def mark_news_as_processed(news_ids):
-    try:
-        response = requests.post(
-            "http://localhost:8004/aws-data/aws_mark_processed",
-            json={"news_ids": news_ids},
+        db.rollback()
+        logger.error(f"Unexpected error occurred: {e}")
+        raise
+    finally:
+        db.close()
+    if not successfully_written_ids:
+        logger.info("No articles were successfully inserted.")
+    else:
+        logger.info(
+            f"Successfully inserted articles with IDs: {successfully_written_ids}"
         )
-        if response.status_code == 200:
-            print("Successfully marked news as processed.")
-        else:
-            print(
-                f"Failed to mark news as processed with status code: {response.status_code}"
-            )
-    except requests.ConnectionError as e:
-        print(f"Failed to connect to mark news as processed: {e}")
+    return successfully_written_ids
 
 
-# Main function
 if __name__ == "__main__":
-    data = fetch_data()
-    if data:
-        successfully_written_ids = test_rds_operations(data)
-        if successfully_written_ids:
-            mark_news_as_processed(successfully_written_ids)
+    try:
+        data = fetch_data()
+        if data:
+            successfully_written_ids = handle_rds_operations(data)
+            if successfully_written_ids:
+                mark_news_as_processed(successfully_written_ids)
+    except Exception as e:
+        logger.error(f"An error occurred in the main function: {e}")
