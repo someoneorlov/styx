@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from ..main import app
 from ..models import NERNewsItem, NERNewsBatch
 from sqlalchemy.exc import SQLAlchemyError
-from ..dependencies import get_db_session
+from styx_packages.data_connector.dependencies import get_db_session
 
 client = TestClient(app)
 

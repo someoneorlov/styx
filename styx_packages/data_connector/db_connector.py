@@ -1,3 +1,4 @@
+import os
 from time import sleep
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, scoped_session
@@ -14,11 +15,11 @@ def initialize_logger(use_file_handler=True):
 
 
 def get_engine(
-    host,
-    port,
-    db,
-    user,
-    password,
+    host=os.getenv("DB_HOST"),
+    port=os.getenv("DB_PORT"),
+    db=os.getenv("DB_NAME"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASS"),
     max_retries=5,
     initial_delay=5,
     use_file_handler=True,

@@ -2,8 +2,8 @@ import pytest
 import json
 import random
 from fastapi.testclient import TestClient
-from ..dependencies import get_db_session
-from ..db_models import RawNewsArticle, NerResults
+from styx_packages.data_connector.dependencies import get_db_session
+from styx_packages.data_connector.db_models import RawNewsArticle, NerResults
 from ..models import Mention, NERInferenceResult, NERInferenceResultBatch
 from ..main import app
 

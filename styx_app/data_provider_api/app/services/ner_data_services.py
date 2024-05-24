@@ -1,11 +1,11 @@
+from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from ..db_models import (
+from styx_packages.data_connector.db_models import (
     RawNewsArticle,
     NerResults,
 )
 from styx_packages.styx_logger.logging_config import setup_logger
-from typing import List
 from ..models import (
     NERInferenceResultBatch,
     NERNewsBatch,

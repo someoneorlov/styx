@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 from styx_packages.styx_logger.logging_config import setup_logger
+from styx_packages.data_connector.dependencies import get_db_session
 from ..models import NERNewsBatch, NERInferenceResultBatch, NewsIDs
-from ..dependencies import get_db_session
 from ..services.ner_data_services import (
     get_unprocessed_news,
     mark_news_as_processed,

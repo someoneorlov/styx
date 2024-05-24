@@ -3,8 +3,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from styx_packages.styx_logger.logging_config import setup_logger
+from styx_packages.data_connector.dependencies import get_db_session
 from ..models import ArticleRawAWSBatch, NewsIDs
-from ..dependencies import get_db_session
 from ..services.aws_data_services import fetch_unprocessed_news, mark_news_as_processed
 
 logger = setup_logger(__name__)

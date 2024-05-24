@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from typing import Optional
 from styx_packages.styx_logger.logging_config import setup_logger
+from styx_packages.data_connector.dependencies import get_db_session
 from ..models import ArticlesMPBatch
-from ..dependencies import get_db_session
 from ..services.frontend_data_services import fetch_news
 
 logger = setup_logger(__name__)
