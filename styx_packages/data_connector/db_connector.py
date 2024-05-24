@@ -4,12 +4,28 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.exc import OperationalError
 from styx_packages.styx_logger.logging_config import setup_logger
 
-logger = setup_logger(__name__)
+logger = None
 
 
-def get_engine(host, port, db, user, password, max_retries=5, initial_delay=5):
+def initialize_logger(use_file_handler=True):
+    global logger
+    if logger is None:
+        logger = setup_logger(__name__, use_file_handler=use_file_handler)
+
+
+def get_engine(
+    host,
+    port,
+    db,
+    user,
+    password,
+    max_retries=5,
+    initial_delay=5,
+    use_file_handler=True,
+):
+    initialize_logger(use_file_handler)
+
     DATABASE_URL = f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db}"
-
     retries = 0
     delay = initial_delay
 
@@ -34,7 +50,9 @@ def get_engine(host, port, db, user, password, max_retries=5, initial_delay=5):
     return None
 
 
-def session_factory(engine):
+def session_factory(engine, use_file_handler=True):
+    initialize_logger(use_file_handler)
+
     if engine is not None:
         SessionLocal = scoped_session(
             sessionmaker(autocommit=False, autoflush=False, bind=engine)
