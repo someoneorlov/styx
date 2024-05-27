@@ -1,3 +1,4 @@
+import os
 import json
 import boto3
 import nltk
@@ -36,7 +37,8 @@ def preprocess_text(text):
 
 
 def lambda_handler(event, context):
-    secret_name = "rds-db-credentials/styx_nlp_database_test"
+    environment = os.getenv("ENVIRONMENT")
+    secret_name = f"rds-db-credentials/styx_nlp_database_{environment}"
     region_name = "us-east-1"
     secrets = get_secret(secret_name, region_name)
 
@@ -74,17 +76,18 @@ def lambda_handler(event, context):
         data = pd.DataFrame(
             raw_data, columns=["id", "raw_news_article_id", "title", "text"]
         )
-        data["processed_text"] = (
+        data["text"] = (
             data[["title", "text"]].agg(". ".join, axis=1).apply(preprocess_text)
         )
-        output = data.to_csv(index=False)
+        output = data.drop(columns=["title"]).to_csv(index=False)
 
         data_size = len(output)
         logger.info(f"Size of data to upload: {data_size} bytes")
 
         s3 = boto3.client("s3")
         preprocessed_key = (
-            "preprocessed_data/sentiment_analysis/latest_preprocessed_data_batch.csv"
+            f"lambda_workflow_data/{environment}/sentiment_workflow/"
+            "preprocessed_data/preprocessed_data_batch.csv"
         )
         logger.info("Starting S3 upload")
         s3.put_object(Bucket="styx-nlp-artifacts", Key=preprocessed_key, Body=output)

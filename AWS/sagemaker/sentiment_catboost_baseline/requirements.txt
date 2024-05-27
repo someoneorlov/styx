@@ -1,0 +1,4 @@
+catboost==1.2.5
+fastapi==0.109.1
+uvicorn==0.21.1
+pandas==2.1.4

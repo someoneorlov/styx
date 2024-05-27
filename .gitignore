@@ -107,3 +107,7 @@ id_aws_ecs_task.pub
 
 # Ignore all ZIP files in AWS/lambda and its subdirectories
 AWS/lambda/**/*.zip
+
+# Ignore models files
+notebooks/**/*.cbm
+notebooks/**/*.tar.gz
