@@ -16,6 +16,8 @@ use_file_handler = False
 
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
 
+ENDPOINT_NAME = "sentiment-catboost-model-endpoint"
+
 
 def get_secret(secret_name, region_name="us-east-1"):
     session = boto3.session.Session()

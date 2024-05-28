@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 from catboost import CatBoostClassifier
 from fastapi import FastAPI, HTTPException
@@ -6,6 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List
 import logging
+import uvicorn
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -61,6 +63,7 @@ def invoke(request: TextRequest):
 
 
 if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    if len(sys.argv) > 1 and sys.argv[1] == "serve":
+        uvicorn.run(app, host="0.0.0.0", port=8080)
+    else:
+        logger.error("Unknown argument provided")
