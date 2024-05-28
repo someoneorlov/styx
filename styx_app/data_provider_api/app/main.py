@@ -1,6 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import ner_data_routes, frontend_data_routes, aws_data_routes
+from .routes import (
+    ner_data_routes,
+    frontend_data_routes,
+    aws_data_routes,
+    sentiment_data_routes,
+)
 
 app = FastAPI()
 
@@ -18,9 +23,9 @@ app.include_router(
 )
 app.include_router(aws_data_routes.router, prefix="/aws-data", tags=["AWS_DATA"])
 app.include_router(ner_data_routes.router, prefix="/ner-data", tags=["NER_DATA"])
-# app.include_router(
-#     semantic_data_routes.router, prefix="/semantic-data", tags=["SEMANTIC_DATA"]
-# )
+app.include_router(
+    sentiment_data_routes.router, prefix="/sentiment-data", tags=["SENTIMENT_DATA"]
+)
 # app.include_router(
 #     summary_data_routes.router, prefix="/summary-data", tags=["SUMMARY_DATA"]
 # )

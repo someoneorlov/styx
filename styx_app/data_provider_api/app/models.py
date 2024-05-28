@@ -44,6 +44,16 @@ class NERInferenceResultBatch(OurBaseModel):
     ner_inference_results: List[NERInferenceResult]
 
 
+class SentimentInferenceResult(OurBaseModel):
+    raw_news_id: int
+    aws_raw_news_id: int
+    sentiment_predict_proba: float
+
+
+class SentimentInferenceResultBatch(OurBaseModel):
+    sentiment_inference_results: List[SentimentInferenceResult]
+
+
 class NewsIDs(OurBaseModel):
     news_ids: List[int]
 

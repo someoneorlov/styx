@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import text
 from styx_packages.styx_logger.logging_config import setup_logger
 from styx_packages.data_connector.dependencies import get_db_session
 from ..models import ArticleRawAWSBatch, NewsIDs
@@ -10,6 +11,17 @@ from ..services.aws_data_services import fetch_unprocessed_news, mark_news_as_pr
 logger = setup_logger(__name__)
 
 router = APIRouter()
+
+
+@router.get("/health")
+async def health_check(db: Session = Depends(get_db_session)):
+    try:
+        db.execute(text("SELECT 1"))
+        logger.info("Health check successful")
+        return {"status": "ok", "message": "Data Provider API is up and running"}
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Database connection failed")
 
 
 @router.get("/aws_unprocessed_news", response_model=ArticleRawAWSBatch)
