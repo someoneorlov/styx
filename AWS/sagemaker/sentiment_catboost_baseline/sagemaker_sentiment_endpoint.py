@@ -34,7 +34,7 @@ predictor = model.deploy(
         memory_size_in_mb=2048,
         max_concurrency=10,
     ),
-    endpoint_name="sentiment-catboost-model-endpoint-15",
+    endpoint_name="sentiment-catboost-model-endpoint",
 )
 
 # Save the endpoint name for use in your Lambda function

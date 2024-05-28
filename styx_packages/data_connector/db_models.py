@@ -1,4 +1,14 @@
-from sqlalchemy import Column, Integer, String, Boolean, ARRAY, Text, ForeignKey, JSON
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Boolean,
+    ARRAY,
+    Text,
+    ForeignKey,
+    JSON,
+    Float,
+)
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import TIMESTAMP
@@ -31,9 +41,13 @@ class RawNewsArticle(Base):
     date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
     is_processed_ner = Column(Boolean, default=False)
     is_processed_aws = Column(Boolean, default=False)
+    is_processed_sentiment = Column(Boolean, default=False)
     ner_results = relationship(
         "NerResults", back_populates="raw_news_article"
     )  # Relationship to NerResults
+    sentiment_results = relationship(
+        "SentimentResults", back_populates="raw_news_article"
+    )  # Relationship to SentimentResults
 
 
 class AWSRawNewsArticle(Base):
@@ -50,6 +64,9 @@ class AWSRawNewsArticle(Base):
     is_processed_sentiment = Column(Boolean, default=False)
     is_processed_summary = Column(Boolean, default=False)
     date_created = Column(TIMESTAMP(timezone=False), server_default=func.now())
+    aws_sentiment_results = relationship(
+        "AWSSentimentResults", back_populates="aws_raw_news_article"
+    )  # Relationship to AWSSentimentResults
 
 
 class NerResults(Base):
@@ -64,3 +81,32 @@ class NerResults(Base):
     salient_entities_set = Column(JSON)
     date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
     raw_news_article = relationship("RawNewsArticle", back_populates="ner_results")
+
+
+class SentimentResults(Base):
+    __tablename__ = "sentiment_results"
+    id = Column(Integer, primary_key=True)
+    raw_news_article_id = Column(
+        Integer, ForeignKey("raw_news_articles.id"), nullable=False
+    )
+    aws_raw_news_article_id = Column(Integer, nullable=False)
+    sentiment_predict_proba = Column(Float, nullable=False)
+    date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    raw_news_article = relationship(
+        "RawNewsArticle", back_populates="sentiment_results"
+    )
+
+
+class AWSSentimentResults(Base):
+    __tablename__ = "aws_sentiment_results"
+    id = Column(Integer, primary_key=True)
+    aws_raw_news_article_id = Column(
+        Integer, ForeignKey("aws_raw_news_articles.id"), nullable=False
+    )
+    raw_news_article_id = Column(Integer, nullable=False)
+    sentiment_predict_proba = Column(Float, nullable=False)
+    is_processed_remote = Column(Boolean, default=False)
+    date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    aws_raw_news_article = relationship(
+        "AWSRawNewsArticle", back_populates="aws_sentiment_results"
+    )
