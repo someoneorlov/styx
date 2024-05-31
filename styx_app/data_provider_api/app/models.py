@@ -57,7 +57,7 @@ class SentimentInferenceResultBatch(OurBaseModel):
 class SummaryInferenceResult(OurBaseModel):
     raw_news_id: int
     aws_raw_news_id: int
-    summary_text: float
+    summary_text: str
 
 
 class SummaryInferenceResultBatch(OurBaseModel):
