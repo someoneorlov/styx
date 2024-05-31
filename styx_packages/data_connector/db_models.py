@@ -42,12 +42,16 @@ class RawNewsArticle(Base):
     is_processed_ner = Column(Boolean, default=False)
     is_processed_aws = Column(Boolean, default=False)
     is_processed_sentiment = Column(Boolean, default=False)
+    is_processed_summary = Column(Boolean, default=False)
     ner_results = relationship(
         "NerResults", back_populates="raw_news_article"
     )  # Relationship to NerResults
     sentiment_results = relationship(
         "SentimentResults", back_populates="raw_news_article"
     )  # Relationship to SentimentResults
+    summary_results = relationship(
+        "SummaryResults", back_populates="raw_news_article"
+    )  # Relationship to SummaryResults
 
 
 class AWSRawNewsArticle(Base):
@@ -67,6 +71,9 @@ class AWSRawNewsArticle(Base):
     aws_sentiment_results = relationship(
         "AWSSentimentResults", back_populates="aws_raw_news_article"
     )  # Relationship to AWSSentimentResults
+    aws_summary_results = relationship(
+        "AWSSummaryResults", back_populates="aws_raw_news_article"
+    )  # Relationship to AWSSummaryResults
 
 
 class NerResults(Base):
@@ -97,6 +104,18 @@ class SentimentResults(Base):
     )
 
 
+class SummaryResults(Base):
+    __tablename__ = "summary_results"
+    id = Column(Integer, primary_key=True)
+    raw_news_article_id = Column(
+        Integer, ForeignKey("raw_news_articles.id"), nullable=False
+    )
+    aws_raw_news_article_id = Column(Integer, nullable=False)
+    summary_text = Column(Text, nullable=False)
+    date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    raw_news_article = relationship("RawNewsArticle", back_populates="summary_results")
+
+
 class AWSSentimentResults(Base):
     __tablename__ = "aws_sentiment_results"
     id = Column(Integer, primary_key=True)
@@ -109,4 +128,19 @@ class AWSSentimentResults(Base):
     date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
     aws_raw_news_article = relationship(
         "AWSRawNewsArticle", back_populates="aws_sentiment_results"
+    )
+
+
+class AWSSummaryResults(Base):
+    __tablename__ = "aws_summary_results"
+    id = Column(Integer, primary_key=True)
+    aws_raw_news_article_id = Column(
+        Integer, ForeignKey("aws_raw_news_articles.id"), nullable=False
+    )
+    raw_news_article_id = Column(Integer, nullable=False)
+    summary_text = Column(Text, nullable=False)
+    is_processed_remote = Column(Boolean, default=False)
+    date_created = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    aws_raw_news_article = relationship(
+        "AWSRawNewsArticle", back_populates="aws_summary_results"
     )
