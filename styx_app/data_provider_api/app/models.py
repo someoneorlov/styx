@@ -54,6 +54,16 @@ class SentimentInferenceResultBatch(OurBaseModel):
     sentiment_inference_results: List[SentimentInferenceResult]
 
 
+class SummaryInferenceResult(OurBaseModel):
+    raw_news_id: int
+    aws_raw_news_id: int
+    summary_text: float
+
+
+class SummaryInferenceResultBatch(OurBaseModel):
+    summary_inference_results: List[SummaryInferenceResult]
+
+
 class NewsIDs(OurBaseModel):
     news_ids: List[int]
 

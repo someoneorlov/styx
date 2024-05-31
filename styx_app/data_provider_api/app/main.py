@@ -5,6 +5,7 @@ from .routes import (
     frontend_data_routes,
     aws_data_routes,
     sentiment_data_routes,
+    summary_data_routes,
 )
 
 app = FastAPI()
@@ -26,6 +27,6 @@ app.include_router(ner_data_routes.router, prefix="/ner-data", tags=["NER_DATA"]
 app.include_router(
     sentiment_data_routes.router, prefix="/sentiment-data", tags=["SENTIMENT_DATA"]
 )
-# app.include_router(
-#     summary_data_routes.router, prefix="/summary-data", tags=["SUMMARY_DATA"]
-# )
+app.include_router(
+    summary_data_routes.router, prefix="/summary-data", tags=["SUMMARY_DATA"]
+)
