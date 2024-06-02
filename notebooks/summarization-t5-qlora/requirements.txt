@@ -1,0 +1,7 @@
+transformers>4.30.0
+datasets
+evaluate
+rouge_score
+peft
+bitsandbytes
+accelerate>0.21
