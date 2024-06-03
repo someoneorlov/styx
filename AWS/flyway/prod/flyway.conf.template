@@ -1,0 +1,4 @@
+flyway.url=jdbc:postgresql://${AWS_RDS_STYX_NLP_DB_ENDPOINT}:5432/${AWS_RDS_STYX_NLP_DB_PROD}
+flyway.user=${AWS_RDS_STYX_NLP_DB_USER_PROD}
+flyway.password=${AWS_RDS_STYX_NLP_DB_PASS_PROD}
+flyway.locations=filesystem:/flyway/sql

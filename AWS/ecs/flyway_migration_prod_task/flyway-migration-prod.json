@@ -1,0 +1,56 @@
+{
+    "family": "flyway-migration-prod",
+    "containerDefinitions": [
+        {
+            "name": "flyway-migration-prod",
+            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/flyway-migrations-prod",
+            "cpu": 0,
+            "portMappings": [],
+            "essential": true,
+            "environment": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "secrets": [
+                {
+                    "name": "AWS_RDS_STYX_NLP_DB_ENDPOINT",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:host::"
+                },
+                {
+                    "name": "AWS_RDS_STYX_NLP_DB_PROD",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:dbname::"
+                },
+                {
+                    "name": "AWS_RDS_STYX_NLP_DB_USER_PROD",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:username::"
+                },
+                {
+                    "name": "AWS_RDS_STYX_NLP_DB_PASS_PROD",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:password::"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/flyway-migration-prod",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "taskRoleArn": "arn:aws:iam::381491949871:role/ecsFlywayTaskRole",
+    "executionRoleArn": "arn:aws:iam::381491949871:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    }
+}
