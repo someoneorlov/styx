@@ -154,7 +154,17 @@ def lambda_handler(event, context):
 
         prefix = "summarize: "
         # Convert the preprocessed data to JSON format for SageMaker endpoint
-        payload = {"inputs": data["text"].apply(lambda x: f"{prefix}{x}").tolist()}
+        payload = {
+            "inputs": data["text"].apply(lambda x: f"{prefix}{x}").tolist(),
+            "parameters": {
+                "do_sample": True,  # Enable sampling
+                "temperature": 0.7,  # Set the creativity of the response
+                "top_p": 0.7,  # Use nucleus sampling with cumulative probability of 0.7
+                "top_k": 50,  # Limit the number of high probability tokens considered
+                "max_length": 512,  # Limit the response to 256 tokens
+                "repetition_penalty": 1.03,  # Slightly discourage repetition
+            },
+        }
 
         # Call the SageMaker endpoint with the preprocessed data
         predictions = call_sagemaker_endpoint(payload)
