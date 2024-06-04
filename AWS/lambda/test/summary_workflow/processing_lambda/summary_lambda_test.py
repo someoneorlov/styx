@@ -1,6 +1,7 @@
 import os
 import json
 import boto3
+import time
 import pandas as pd
 from botocore.exceptions import ClientError
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
@@ -11,13 +12,14 @@ from styx_packages.data_connector.db_models import (
     AWSSummaryResults,
 )
 
-# Access environment variables at the beginning
-ENDPOINT_NAME = os.getenv(
-    "ENDPOINT_NAME", "huggingface-pytorch-training-2024-05-31-02-12-02-948"
-)
+ENDPOINT_NAME = os.getenv("ENDPOINT_NAME", "flan-t5-small-finetuned-6144-5")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
 REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
 SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
+prefix = os.getenv("MODEL_PREFIX", "summarize: ")
+batch_size = int(os.getenv("FETCH_RAW_BATCH_SIZE", 10))
+model_batch_size = int(os.getenv("MODEL_BATCH_SIZE", 5))
+input_length = int(os.getenv("INP_TOKEN_LENGTH", 256))
 
 use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
@@ -38,7 +40,7 @@ def get_secret(secret_name, region_name=REGION_NAME):
     return json.loads(secret)
 
 
-def fetch_raw_data(db, batch_size=3):
+def fetch_raw_data(db, batch_size=batch_size):
     try:
         raw_data = (
             db.query(
@@ -128,6 +130,19 @@ def mark_news_as_processed(db, news_ids):
         raise
 
 
+def preprocess_input(text: str, input_length: int, prefix: str) -> str:
+    tokens = text.split()
+    if len(tokens) > input_length - 1:
+        return (
+            prefix
+            + " ".join(tokens[: (input_length - 1) // 2])
+            + " "
+            + " ".join(tokens[-(input_length - 1) // 2 :])
+        )
+    else:
+        return prefix + text
+
+
 def lambda_handler(event, context):
     secrets = get_secret(SECRET_NAME, REGION_NAME)
 
@@ -149,30 +164,35 @@ def lambda_handler(event, context):
     db = SessionLocal()
 
     try:
-        # Fetch raw data
         data = fetch_raw_data(db)
-
-        prefix = "summarize: "
-        # Convert the preprocessed data to JSON format for SageMaker endpoint
-        payload = {
-            "inputs": data["text"].apply(lambda x: f"{prefix}{x}").tolist(),
-            "parameters": {
-                "do_sample": True,  # Enable sampling
-                "temperature": 0.7,  # Set the creativity of the response
-                "top_p": 0.7,  # Use nucleus sampling with cumulative probability of 0.7
-                "top_k": 50,  # Limit the number of high probability tokens considered
-                "max_length": 512,  # Limit the response to 256 tokens
-                "repetition_penalty": 1.03,  # Slightly discourage repetition
-            },
-        }
-
-        # Call the SageMaker endpoint with the preprocessed data
-        predictions = call_sagemaker_endpoint(payload)
-
-        # Save predictions to the database
+        predictions = []
+        start_time = time.time()
+        for i in range(0, len(data), model_batch_size):
+            batch_data = data.iloc[i : i + model_batch_size]
+            batch_text = (
+                batch_data["text"]
+                .apply(lambda x: preprocess_input(x, input_length, prefix))
+                .tolist()
+            )
+            payload = {
+                "inputs": batch_text,
+                "parameters": {
+                    "do_sample": True,
+                    "temperature": 0.7,
+                    "top_p": 0.7,
+                    "top_k": 50,
+                    "max_length": 512,
+                    "repetition_penalty": 1.03,
+                },
+            }
+            batch_predictions = call_sagemaker_endpoint(payload)
+            predictions.extend(batch_predictions)
+            current_time = time.time()
+            logger.info(
+                f"Time from beginning: {current_time-start_time:.2f}s, iteration time: "
+                f"{current_time-start_time-i/len(data)*(current_time-start_time):.2f}s"
+            )
         successfully_written_ids = save_predictions_to_db(db, data, predictions)
-
-        # Mark news articles as processed
         mark_news_as_processed(db, successfully_written_ids)
 
         return {"status": "success", "processed_ids": successfully_written_ids}
