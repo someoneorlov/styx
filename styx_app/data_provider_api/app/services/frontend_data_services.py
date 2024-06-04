@@ -29,6 +29,7 @@ def fetch_news(
             db=0,
             decode_responses=True,  # Decode responses from bytes to str
         )
+        logger.info("Successfully connected to Redis.")
     except Exception as e:
         logger.error(f"Failed to connect to Redis: {e}")
         raise
@@ -36,10 +37,11 @@ def fetch_news(
     try:
         if company_name:
             # Attempt to find a matching entity in Redis
-            redis_key = f"ner_mention:{company_name.lower()}"  # Example key format
+            redis_key = f"ner_mention:{company_name.lower()}"
             matched_company_name = redis_client.get(redis_key)
             if matched_company_name:
                 company_name = matched_company_name
+                logger.info(f"Found Redis match for {company_name} in key: {redis_key}")
             else:
                 logger.info(
                     f"No Redis match found for {company_name}, "
@@ -62,17 +64,15 @@ def fetch_news(
             .join(SentimentResults, isouter=False)
             .join(SummaryResults, isouter=False)
         )
-
         # Conditional filtering based on company_name
         if company_name:
             # Assuming company_name is already in the matched format
             query = query.filter(
                 NerResults.salient_entities_set.op("@>")([company_name])
             )
-
         query = query.order_by(RawNewsArticle.publish_date.desc()).limit(batch_size)
-
         latest_news_batch = query.all()
+        logger.info(f"Fetched {len(latest_news_batch)} news items from DB.")
 
         front_news_items: List[ArticleMainPage] = []
         for (

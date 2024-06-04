@@ -24,7 +24,7 @@ async def fetch_news_endpoint(
         news_batch = fetch_news(db, company_name, batch_size)
         logger.info(
             f"Fetched {len(news_batch.articles)} articles"
-            + (" filtered by company" if company_name else " latest")
+            + (f" filtered by company {company_name}" if company_name else " latest")
         )
         return news_batch
     except SQLAlchemyError as e:
