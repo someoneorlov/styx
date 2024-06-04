@@ -1,20 +1,20 @@
 {
-    "family": "result-data-transfer-test",
+    "family": "summary-result-data-transfer-prod",
     "containerDefinitions": [
         {
-            "name": "result-data-transfer-test",
-            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/result-data-transfer-test",
+            "name": "summary-result-data-transfer-prod",
+            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/summary-result-data-transfer-prod",
             "cpu": 0,
             "portMappings": [],
             "essential": true,
             "environment": [
                 {
                     "name": "SSH_PORT_FORWARD",
-                    "value": "8004:127.0.0.1:8004"
+                    "value": "8003:127.0.0.1:8003"
                 },
                 {
                     "name": "DATA_PROVIDER_API_URL",
-                    "value": "http://localhost:8004"
+                    "value": "http://localhost:8003"
                 }
             ],
             "mountPoints": [],
@@ -22,23 +22,23 @@
             "secrets": [
                 {
                     "name": "AWS_DB_HOST",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_test-7z3wGk:host::"
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:host::"
                 },
                 {
                     "name": "AWS_DB_NAME",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_test-7z3wGk:dbname::"
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:dbname::"
                 },
                 {
                     "name": "AWS_DB_PASS",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_test-7z3wGk:password::"
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:password::"
                 },
                 {
                     "name": "AWS_DB_PORT",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_test-7z3wGk:port::"
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:port::"
                 },
                 {
                     "name": "AWS_DB_USER",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_test-7z3wGk:username::"
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:username::"
                 },
                 {
                     "name": "SSH_CONFIG",
@@ -61,7 +61,7 @@
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "/ecs/result-data-transfer-test",
+                    "awslogs-group": "/ecs/summary-result-data-transfer-prod",
                     "awslogs-region": "us-east-1",
                     "awslogs-stream-prefix": "ecs"
                 },

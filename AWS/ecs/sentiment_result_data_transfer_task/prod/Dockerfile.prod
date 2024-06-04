@@ -10,8 +10,8 @@ RUN pip install -r /app/requirements.txt
 COPY ./styx_packages /app/styx_packages
 RUN pip install ./styx_packages
 
-COPY AWS/ecs/summary_result_data_transfer_task/summary_result_data_transfer_test.py /app/summary_result_data_transfer_test.py
+COPY AWS/ecs/sentiment_result_data_transfer_task/prod/sentiment_result_data_transfer_prod.py /app/sentiment_result_data_transfer_prod.py
 
 RUN mkdir /root/.ssh/
 
-ENTRYPOINT ["python", "/app/summary_result_data_transfer_test.py"]
+ENTRYPOINT ["python", "/app/sentiment_result_data_transfer_prod.py"]

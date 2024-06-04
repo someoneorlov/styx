@@ -168,6 +168,7 @@ def lambda_handler(event, context):
         predictions = []
         start_time = time.time()
         for i in range(0, len(data), model_batch_size):
+            iteration_start_time = time.time()
             batch_data = data.iloc[i : i + model_batch_size]
             batch_text = (
                 batch_data["text"]
@@ -189,8 +190,8 @@ def lambda_handler(event, context):
             predictions.extend(batch_predictions)
             current_time = time.time()
             logger.info(
-                f"Time from beginning: {current_time-start_time:.2f}s, iteration time: "
-                f"{current_time-start_time-i/len(data)*(current_time-start_time):.2f}s"
+                f"Time from beginning: {current_time-start_time:.2f}s, "
+                f"iteration time: {current_time-iteration_start_time:.2f}s"
             )
         successfully_written_ids = save_predictions_to_db(db, data, predictions)
         mark_news_as_processed(db, successfully_written_ids)
