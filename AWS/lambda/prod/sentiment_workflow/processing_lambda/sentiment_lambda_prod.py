@@ -1,23 +1,25 @@
 import os
 import json
 import boto3
+import nltk
 import pandas as pd
+from nltk.stem.porter import PorterStemmer
 from botocore.exceptions import ClientError
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from styx_packages.styx_logger.logging_config import setup_logger
 from styx_packages.data_connector.db_connector import get_engine, session_factory
 from styx_packages.data_connector.db_models import (
     AWSRawNewsArticle,
-    AWSSummaryResults,
+    AWSSentimentResults,
 )
 
 # Access environment variables at the beginning
-ENDPOINT_NAME = os.getenv(
-    "ENDPOINT_NAME", "huggingface-pytorch-training-2024-05-31-02-12-02-948"
-)
+ENDPOINT_NAME = os.getenv("ENDPOINT_NAME", "sentiment-catboost-model-endpoint")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
 REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
 SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
+
+nltk.data.path.append("/opt/python/nltk_data")
 
 use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
@@ -38,20 +40,31 @@ def get_secret(secret_name, region_name=REGION_NAME):
     return json.loads(secret)
 
 
-def fetch_raw_data(db, batch_size=3):
+def preprocess_text(text):
+    stemmer = PorterStemmer()
+    return " ".join([stemmer.stem(word) for word in nltk.word_tokenize(text)])
+
+
+def fetch_raw_data(db, batch_size=100):
     try:
         raw_data = (
             db.query(
                 AWSRawNewsArticle.id,
                 AWSRawNewsArticle.raw_news_article_id,
+                AWSRawNewsArticle.title,
                 AWSRawNewsArticle.text,
             )
-            .filter(AWSRawNewsArticle.is_processed_summary == False)  # noqa: E712
+            .filter(AWSRawNewsArticle.is_processed_sentiment == False)  # noqa: E712
             .limit(batch_size)
             .all()
         )
 
-        data = pd.DataFrame(raw_data, columns=["id", "raw_news_article_id", "text"])
+        data = pd.DataFrame(
+            raw_data, columns=["id", "raw_news_article_id", "title", "text"]
+        )
+        data["text"] = (
+            data[["title", "text"]].agg(". ".join, axis=1).apply(preprocess_text)
+        )
         return data
     except SQLAlchemyError as e:
         logger.error(f"SQLAlchemyError while fetching raw data: {e}")
@@ -70,7 +83,7 @@ def call_sagemaker_endpoint(payload):
         )
         result = response["Body"].read().decode("utf-8")
         result_json = json.loads(result)  # Parse the JSON response
-        return result_json
+        return result_json["predictions"]  # Extract the predictions list
     except ClientError as e:
         logger.error(f"ClientError while calling SageMaker endpoint: {e}")
         raise
@@ -83,29 +96,29 @@ def save_predictions_to_db(db, data, predictions):
     successfully_written_ids = []
     try:
         for index, row in data.iterrows():
-            # Check if the summary result already exists
+            # Check if the sentiment result already exists
             existing_result = (
-                db.query(AWSSummaryResults)
-                .filter(AWSSummaryResults.aws_raw_news_article_id == row["id"])
+                db.query(AWSSentimentResults)
+                .filter(AWSSentimentResults.aws_raw_news_article_id == row["id"])
                 .first()
             )
             if existing_result:
                 logger.info(
-                    f"Summary result for article ID {row['id']} already exists."
+                    f"Sentiment result for article ID {row['id']} already exists."
                 )
                 successfully_written_ids.append(row["id"])
                 continue
 
-            # Create new summary result entry
-            result = AWSSummaryResults(
+            # Create new sentiment result entry
+            result = AWSSentimentResults(
                 aws_raw_news_article_id=row["id"],
                 raw_news_article_id=row["raw_news_article_id"],
-                summary_text=predictions[index]["generated_text"],
+                sentiment_predict_proba=float(predictions[index]),
             )
             db.add(result)
             successfully_written_ids.append(row["id"])
         db.commit()
-        logger.info("Successfully wrote summary predictions to DB.")
+        logger.info("Successfully wrote sentiment predictions to DB.")
     except Exception as e:
         db.rollback()
         logger.error(f"Error saving predictions to DB: {e}")
@@ -117,7 +130,7 @@ def mark_news_as_processed(db, news_ids):
     try:
         logger.info(f"Marking {len(news_ids)} news items as processed...")
         db.query(AWSRawNewsArticle).filter(AWSRawNewsArticle.id.in_(news_ids)).update(
-            {AWSRawNewsArticle.is_processed_summary: True},
+            {AWSRawNewsArticle.is_processed_sentiment: True},
             synchronize_session="fetch",
         )
         db.commit()
@@ -150,18 +163,7 @@ def lambda_handler(event, context):
 
     try:
         data = fetch_raw_data(db)
-        prefix = "summarize: "
-        payload = {
-            "inputs": data["text"].apply(lambda x: f"{prefix}{x}").tolist(),
-            "parameters": {
-                "do_sample": True,  # Enable sampling
-                "temperature": 0.7,  # Set the creativity of the response
-                "top_p": 0.7,  # Use nucleus sampling with cumulative probability of 0.7
-                "top_k": 50,  # Limit the number of high probability tokens considered
-                "max_length": 512,  # Limit the response to 256 tokens
-                "repetition_penalty": 1.03,  # Slightly discourage repetition
-            },
-        }
+        payload = {"text": data["text"].tolist()}
         predictions = call_sagemaker_endpoint(payload)
         successfully_written_ids = save_predictions_to_db(db, data, predictions)
         mark_news_as_processed(db, successfully_written_ids)

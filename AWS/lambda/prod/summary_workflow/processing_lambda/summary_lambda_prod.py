@@ -12,9 +12,7 @@ from styx_packages.data_connector.db_models import (
 )
 
 # Access environment variables at the beginning
-ENDPOINT_NAME = os.getenv(
-    "ENDPOINT_NAME", "huggingface-pytorch-training-2024-05-31-02-12-02-948"
-)
+ENDPOINT_NAME = os.getenv("ENDPOINT_NAME", "flan-t5-small-finetuned-6144-5")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
 REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
 SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
@@ -38,7 +36,7 @@ def get_secret(secret_name, region_name=REGION_NAME):
     return json.loads(secret)
 
 
-def fetch_raw_data(db, batch_size=3):
+def fetch_raw_data(db, batch_size=100):
     try:
         raw_data = (
             db.query(

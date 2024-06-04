@@ -9,8 +9,8 @@ RUN pip install ./styx_packages
 
 COPY ./styx_app/data_provider_api/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install pytest==7.4.4
-RUN pip install httpx
+# RUN pip install pytest==7.4.4
+# RUN pip install httpx
 
 COPY ./styx_app/data_provider_api/app ./app/
 

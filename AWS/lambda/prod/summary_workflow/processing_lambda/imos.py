@@ -149,8 +149,11 @@ def lambda_handler(event, context):
     db = SessionLocal()
 
     try:
+        # Fetch raw data
         data = fetch_raw_data(db)
+
         prefix = "summarize: "
+        # Convert the preprocessed data to JSON format for SageMaker endpoint
         payload = {
             "inputs": data["text"].apply(lambda x: f"{prefix}{x}").tolist(),
             "parameters": {
@@ -162,8 +165,14 @@ def lambda_handler(event, context):
                 "repetition_penalty": 1.03,  # Slightly discourage repetition
             },
         }
+
+        # Call the SageMaker endpoint with the preprocessed data
         predictions = call_sagemaker_endpoint(payload)
+
+        # Save predictions to the database
         successfully_written_ids = save_predictions_to_db(db, data, predictions)
+
+        # Mark news articles as processed
         mark_news_as_processed(db, successfully_written_ids)
 
         return {"status": "success", "processed_ids": successfully_written_ids}
