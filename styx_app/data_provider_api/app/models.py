@@ -76,6 +76,8 @@ class ArticleMainPage(OurBaseModel):
     media_link: str
     media_title: str
     salient_entities_set: List[str]
+    sentiment_predict_proba: float
+    summary_text: str
 
 
 class ArticlesMPBatch(OurBaseModel):

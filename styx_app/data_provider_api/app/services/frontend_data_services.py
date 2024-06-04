@@ -6,6 +6,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from styx_packages.data_connector.db_models import (
     RawNewsArticle,
     NerResults,
+    SentimentResults,
+    SummaryResults,
 )
 from styx_packages.styx_logger.logging_config import setup_logger
 from ..models import (
@@ -44,15 +46,22 @@ def fetch_news(
                     "proceeding with original value."
                 )
 
-        query = db.query(
-            RawNewsArticle.title,
-            RawNewsArticle.text,
-            RawNewsArticle.publish_date,
-            RawNewsArticle.canonical_link,
-            RawNewsArticle.media_link,
-            RawNewsArticle.media_title,
-            NerResults.salient_entities_set,
-        ).join(NerResults, isouter=False)
+        query = (
+            db.query(
+                RawNewsArticle.title,
+                RawNewsArticle.text,
+                RawNewsArticle.publish_date,
+                RawNewsArticle.canonical_link,
+                RawNewsArticle.media_link,
+                RawNewsArticle.media_title,
+                NerResults.salient_entities_set,
+                SentimentResults.sentiment_predict_proba,
+                SummaryResults.summary_text,
+            )
+            .join(NerResults, isouter=False)
+            .join(SentimentResults, isouter=False)
+            .join(SummaryResults, isouter=False)
+        )
 
         # Conditional filtering based on company_name
         if company_name:
@@ -74,6 +83,8 @@ def fetch_news(
             media_link,
             media_title,
             salient_entities_set,
+            sentiment_predict_proba,
+            summary_text,
         ) in latest_news_batch:
             article_data = ArticleMainPage(
                 title=title,
@@ -85,6 +96,8 @@ def fetch_news(
                 salient_entities_set=(
                     salient_entities_set if salient_entities_set else []
                 ),
+                sentiment_predict_proba=sentiment_predict_proba,
+                summary_text=summary_text,
             )
             front_news_items.append(article_data)
 
