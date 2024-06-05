@@ -244,32 +244,41 @@ services:
       redis_test:
         condition: service_started
 
-  nginx_prod:
-    build: 
+  # frontend_prod:
+  #   build:
+  #     context: ./styx_app/frontend/prod
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - data_provider_api_prod
+
+  frontend_test:
+    build:
+      context: ./styx_app/frontend/test
+    volumes:
+      - react-build-test:/app/build
+    ports:
+      - "3001:80"
+    depends_on:
+      - data_provider_api_test
+  
+  nginx:
+    build:
       context: .
-      dockerfile: ./styx_app/nginx/prod/Dockerfile
+      dockerfile: ./styx_app/nginx/Dockerfile
     ports:
       - "80:80"
-      - "443:443"  # Add this line if you haven't already to expose HTTPS port
-    volumes:
-      - /etc/letsencrypt:/etc/letsencrypt
-    #   - ./styx_app/frontend/test/build:/usr/share/nginx/html
-    depends_on:
-      - data_provider_api_prod
-
-  nginx_test:
-    build: 
-      context: .
-      dockerfile: ./styx_app/nginx/test/Dockerfile
-    ports:
-      - "81:80"
-      - "8443:443"  # Add this line if you haven't already to expose HTTPS port
+      - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
       - .htpasswd:/etc/nginx/.htpasswd 
-    #   - ./styx_app/frontend/test/build:/usr/share/nginx/html
+      # - react-build-prod:/usr/share/nginx/html/prod
+      - react-build-test:/usr/share/nginx/html/test
     depends_on:
+      - data_provider_api_prod
       - data_provider_api_test
+      # - frontend_prod
+      - frontend_test
 
   scraper_prod:
     build:
@@ -611,3 +620,5 @@ volumes:
   redis-data-test:
   mlflow-db-data:
   mlflow-data:
+  # react-build-prod:
+  react-build-test:

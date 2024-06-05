@@ -14,6 +14,7 @@ router = APIRouter()
 
 
 @router.get("/news", response_model=ArticlesMPBatch)
+@router.head("/news")
 async def fetch_news_endpoint(
     db: Session = Depends(get_db_session),
     company_name: Optional[str] = None,
