@@ -62,6 +62,10 @@ def fetch_raw_data(db, batch_size=3):
         data = pd.DataFrame(
             raw_data, columns=["id", "raw_news_article_id", "title", "text"]
         )
+        if data.empty:
+            logger.info("No new data to process.")
+            return data
+
         data["text"] = (
             data[["title", "text"]].agg(". ".join, axis=1).apply(preprocess_text)
         )
@@ -163,6 +167,9 @@ def lambda_handler(event, context):
 
     try:
         data = fetch_raw_data(db)
+        if data.empty:
+            return {"status": "success", "message": "No new data"}
+
         payload = {"text": data["text"].tolist()}
         predictions = call_sagemaker_endpoint(payload)
         successfully_written_ids = save_predictions_to_db(db, data, predictions)

@@ -25,7 +25,7 @@ def fetch_unprocessed_news(db: Session, batch_size=100) -> ArticleRawAWSBatch:
             )
             .filter(
                 RawNewsArticle.is_parsed == True,  # noqa: E712
-                RawNewsArticle.is_processed_ner == False,  # noqa: E712
+                RawNewsArticle.is_processed_aws == False,  # noqa: E712
             )
             .limit(batch_size)
             .all()

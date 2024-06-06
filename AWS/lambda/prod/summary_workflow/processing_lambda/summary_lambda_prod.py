@@ -54,6 +54,10 @@ def fetch_raw_data(db, batch_size=batch_size):
         )
 
         data = pd.DataFrame(raw_data, columns=["id", "raw_news_article_id", "text"])
+        if data.empty:
+            logger.info("No new data to process.")
+            return data
+
         return data
     except SQLAlchemyError as e:
         logger.error(f"SQLAlchemyError while fetching raw data: {e}")
@@ -165,6 +169,9 @@ def lambda_handler(event, context):
 
     try:
         data = fetch_raw_data(db)
+        if data.empty:
+            return {"status": "success", "message": "No new data"}
+
         predictions = []
         start_time = time.time()
         for i in range(0, len(data), model_batch_size):

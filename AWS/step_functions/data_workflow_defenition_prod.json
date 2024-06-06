@@ -1,217 +1,243 @@
 {
-    "Comment": "State Machine for Data Transfer and Processing",
-    "StartAt": "RawDataTransferTaksPROD",
-    "States": {
-      "RawDataTransferTaksPROD": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::ecs:runTask.sync",
-        "Parameters": {
-          "LaunchType": "FARGATE",
-          "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
-          "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/raw-data-transfer-prod:2",
-          "NetworkConfiguration": {
-            "AwsvpcConfiguration": {
-              "Subnets": [
-                "subnet-0de64508bed2d94b5",
-                "subnet-0b34bfb024fa1325b",
-                "subnet-0896b9f71c46c3601",
-                "subnet-02748651014762c9c",
-                "subnet-01fc8731fbcc2def3",
-                "subnet-00f05101da53ee352"
-              ],
-              "SecurityGroups": [
-                "sg-03682fe5c7a94d94f"
-              ],
-              "AssignPublicIp": "ENABLED"
-            }
-          }
-        },
-        "Next": "sentimentProcessingLambdaProd",
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
+  "Comment": "State Machine for Data Transfer and Processing",
+  "StartAt": "RawDataTransferTaksPROD",
+  "States": {
+    "RawDataTransferTaksPROD": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/raw-data-transfer-prod:2",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-0de64508bed2d94b5",
+              "subnet-0b34bfb024fa1325b",
+              "subnet-0896b9f71c46c3601",
+              "subnet-02748651014762c9c",
+              "subnet-01fc8731fbcc2def3",
+              "subnet-00f05101da53ee352"
             ],
-            "BackoffRate": 2,
-            "IntervalSeconds": 5,
-            "MaxAttempts": 3,
-            "MaxDelaySeconds": 120,
-            "JitterStrategy": "FULL"
-          }
-        ],
-        "Catch": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
+            "SecurityGroups": [
+              "sg-03682fe5c7a94d94f"
             ],
-            "ResultPath": "$.error-info",
-            "Next": "FailState"
+            "AssignPublicIp": "ENABLED"
           }
-        ],
-        "TimeoutSeconds": 300
+        }
       },
-      "FailState": {
-        "Type": "Fail",
-        "ErrorPath": "$.error-info.Error",
-        "CausePath": "$.error-info.Cause"
+      "Next": "sentimentProcessingLambdaProd",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error-info",
+          "Next": "FailState"
+        }
+      ],
+      "TimeoutSeconds": 300
+    },
+    "FailState": {
+      "Type": "Fail",
+      "ErrorPath": "$.error-info.Error",
+      "CausePath": "$.error-info.Cause"
+    },
+    "sentimentProcessingLambdaProd": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:sentimentProcessingLambdaProd:$LATEST"
       },
-      "sentimentProcessingLambdaProd": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::lambda:invoke",
-        "OutputPath": "$.Payload",
-        "Parameters": {
-          "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:sentimentProcessingLambdaProd:$LATEST"
-        },
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Next": "IsNewDataSentiment",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailState",
+          "ResultPath": "$.error-info"
+        }
+      ],
+      "TimeoutSeconds": 300
+    },
+    "IsNewDataSentiment": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.message",
+          "IsPresent": true,
+          "Next": "summaryProcessingLambdaProd"
+        }
+      ],
+      "Default": "SentimentResultDataTransferTaksPROD"
+    },
+    "SentimentResultDataTransferTaksPROD": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/sentiment-result-data-transfer-prod:2",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-0de64508bed2d94b5",
+              "subnet-0b34bfb024fa1325b",
+              "subnet-0896b9f71c46c3601",
+              "subnet-02748651014762c9c",
+              "subnet-01fc8731fbcc2def3",
+              "subnet-00f05101da53ee352"
             ],
-            "IntervalSeconds": 5,
-            "MaxAttempts": 3,
-            "BackoffRate": 2,
-            "MaxDelaySeconds": 120,
-            "JitterStrategy": "FULL"
-          }
-        ],
-        "Next": "SentimentResultDataTransferTaksPROD",
-        "Catch": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
+            "SecurityGroups": [
+              "sg-03682fe5c7a94d94f"
             ],
-            "Next": "FailState",
-            "ResultPath": "$.error-info"
+            "AssignPublicIp": "ENABLED"
           }
-        ],
-        "TimeoutSeconds": 300
+        }
       },
-      "SentimentResultDataTransferTaksPROD": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::ecs:runTask.sync",
-        "Parameters": {
-          "LaunchType": "FARGATE",
-          "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
-          "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/sentiment-result-data-transfer-prod:2",
-          "NetworkConfiguration": {
-            "AwsvpcConfiguration": {
-              "Subnets": [
-                "subnet-0de64508bed2d94b5",
-                "subnet-0b34bfb024fa1325b",
-                "subnet-0896b9f71c46c3601",
-                "subnet-02748651014762c9c",
-                "subnet-01fc8731fbcc2def3",
-                "subnet-00f05101da53ee352"
-              ],
-              "SecurityGroups": [
-                "sg-03682fe5c7a94d94f"
-              ],
-              "AssignPublicIp": "ENABLED"
-            }
-          }
-        },
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
-            ],
-            "BackoffRate": 2,
-            "IntervalSeconds": 5,
-            "MaxAttempts": 3,
-            "MaxDelaySeconds": 120,
-            "JitterStrategy": "FULL"
-          }
-        ],
-        "Catch": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
-            ],
-            "Next": "FailState",
-            "ResultPath": "$.error-info"
-          }
-        ],
-        "TimeoutSeconds": 300,
-        "Next": "summaryProcessingLambdaProd"
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailState",
+          "ResultPath": "$.error-info"
+        }
+      ],
+      "TimeoutSeconds": 300,
+      "Next": "summaryProcessingLambdaProd"
+    },
+    "summaryProcessingLambdaProd": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "OutputPath": "$.Payload",
+      "Parameters": {
+        "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:summaryProcessingLambdaProd:$LATEST"
       },
-      "summaryProcessingLambdaProd": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::lambda:invoke",
-        "OutputPath": "$.Payload",
-        "Parameters": {
-          "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:summaryProcessingLambdaProd:$LATEST"
-        },
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailState",
+          "ResultPath": "$.error-info"
+        }
+      ],
+      "TimeoutSeconds": 300,
+      "Next": "IsNewDataSummary"
+    },
+    "IsNewDataSummary": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.message",
+          "IsPresent": true,
+          "Next": "Pass"
+        }
+      ],
+      "Default": "SummaryResultDataTransferTaksPROD"
+    },
+    "Pass": {
+      "Type": "Pass",
+      "End": true
+    },
+    "SummaryResultDataTransferTaksPROD": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
+        "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/summary-result-data-transfer-prod:2",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-0de64508bed2d94b5",
+              "subnet-0b34bfb024fa1325b",
+              "subnet-0896b9f71c46c3601",
+              "subnet-02748651014762c9c",
+              "subnet-01fc8731fbcc2def3",
+              "subnet-00f05101da53ee352"
             ],
-            "IntervalSeconds": 5,
-            "MaxAttempts": 3,
-            "BackoffRate": 2,
-            "MaxDelaySeconds": 120,
-            "JitterStrategy": "FULL"
-          }
-        ],
-        "Catch": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
+            "SecurityGroups": [
+              "sg-03682fe5c7a94d94f"
             ],
-            "Next": "FailState",
-            "ResultPath": "$.error-info"
+            "AssignPublicIp": "ENABLED"
           }
-        ],
-        "TimeoutSeconds": 300,
-        "Next": "SummaryResultDataTransferTaksPROD"
+        }
       },
-      "SummaryResultDataTransferTaksPROD": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::ecs:runTask.sync",
-        "Parameters": {
-          "LaunchType": "FARGATE",
-          "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
-          "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/summary-result-data-transfer-prod:2",
-          "NetworkConfiguration": {
-            "AwsvpcConfiguration": {
-              "Subnets": [
-                "subnet-0de64508bed2d94b5",
-                "subnet-0b34bfb024fa1325b",
-                "subnet-0896b9f71c46c3601",
-                "subnet-02748651014762c9c",
-                "subnet-01fc8731fbcc2def3",
-                "subnet-00f05101da53ee352"
-              ],
-              "SecurityGroups": [
-                "sg-03682fe5c7a94d94f"
-              ],
-              "AssignPublicIp": "ENABLED"
-            }
-          }
-        },
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
-            ],
-            "BackoffRate": 2,
-            "IntervalSeconds": 5,
-            "MaxAttempts": 3,
-            "MaxDelaySeconds": 120,
-            "JitterStrategy": "FULL"
-          }
-        ],
-        "Catch": [
-          {
-            "ErrorEquals": [
-              "States.ALL"
-            ],
-            "Next": "FailState",
-            "ResultPath": "$.error-info"
-          }
-        ],
-        "TimeoutSeconds": 300,
-        "End": true
-      }
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "Next": "FailState",
+          "ResultPath": "$.error-info"
+        }
+      ],
+      "TimeoutSeconds": 300,
+      "End": true
     }
   }
+}
