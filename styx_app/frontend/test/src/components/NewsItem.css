@@ -1,27 +1,60 @@
 .news-item {
-    background-color: #fff;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .news-item h3 {
-    font-size: 20px;
-    margin-bottom: 10px;
-  }
-  
-  .news-item p {
-    font-size: 16px;
-    color: #555;
-  }
-  
-  .news-item a {
-    color: #007bff;
-    text-decoration: none;
-  }
-  
-  .news-item a:hover {
-    text-decoration: underline;
-  }
-  
+  background-color: #fff;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.news-item h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #000;
+  flex-basis: 30%; /* 30% width for title */
+}
+
+.news-item p {
+  font-size: 16px;
+  color: #555;
+  flex-basis: 50%; /* 50% width for text */
+}
+
+.news-item a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.news-item a:hover {
+  text-decoration: underline;
+}
+
+.news-item .date {
+  font-size: 14px;
+  color: #888;
+}
+
+.news-item .summary {
+  flex: 1;
+  margin-left: 20px;
+}
+
+.news-item .sentiment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-basis: 20%; /* 20% width for emoji */
+}
+
+.latest-news {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}

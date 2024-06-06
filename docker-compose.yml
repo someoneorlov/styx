@@ -255,10 +255,8 @@ services:
   frontend_test:
     build:
       context: ./styx_app/frontend/test
-    volumes:
-      - react-build-test:/app/build
-    ports:
-      - "3001:80"
+    environment:
+      - WATCHPACK_POLLING=true
     depends_on:
       - data_provider_api_test
   
@@ -271,9 +269,9 @@ services:
       - "443:443"
     volumes:
       - /etc/letsencrypt:/etc/letsencrypt
-      - .htpasswd:/etc/nginx/.htpasswd 
+      # - .htpasswd:/etc/nginx/.htpasswd 
       # - react-build-prod:/usr/share/nginx/html/prod
-      - react-build-test:/usr/share/nginx/html/test
+      # - react-build-test:/usr/share/nginx/html/test
     depends_on:
       - data_provider_api_prod
       - data_provider_api_test
@@ -620,5 +618,5 @@ volumes:
   redis-data-test:
   mlflow-db-data:
   mlflow-data:
+  # react-build-test:
   # react-build-prod:
-  react-build-test:

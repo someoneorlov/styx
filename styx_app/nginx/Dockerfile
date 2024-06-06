@@ -1,6 +1,12 @@
 FROM nginx:1.24.0
-COPY ./styx_app/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY ./styx_app/nginx/default.conf /etc/nginx/conf.d/default.conf
-# COPY --from=frontend_test /app/build /usr/share/nginx/html
+
+COPY styx_app/nginx/nginx.conf /etc/nginx/nginx.conf
+COPY styx_app/nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY .htpasswd /etc/nginx/.htpasswd
+
+# COPY --from=prod_builder /app/build /usr/share/nginx/html/prod
+COPY --from=styx_frontend_test:latest /app/build /usr/share/nginx/html/test
+
 EXPOSE 80
+EXPOSE 443
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,32 +1,30 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './NewsItem.css';
 
-const NewsItem = ({ article, handleCompanyFilter }) => {
-  const [showFullText, setShowFullText] = useState(false);
-
-  const toggleFullText = () => {
-    setShowFullText(!showFullText);
-  };
-
+const NewsItem = ({ article }) => {
   return (
     <div className="news-item">
-      <h3><a href={article.canonical_link} target="_blank" rel="noopener noreferrer">{article.title}</a></h3>
-      <p>{article.publish_date}</p>
-      <p><a href={article.media_link} target="_blank" rel="noopener noreferrer">{article.media_title}</a></p>
-      <div className="salient-entities">
-        {article.salient_entities_set.map((entity, index) => (
-          <span key={index} className="entity" onClick={() => handleCompanyFilter(entity)}>#{entity}</span>
-        ))}
+      <div className="news-content">
+        <div className="news-title">
+          <a href={article.canonical_link} target="_blank" rel="noopener noreferrer">
+            {article.title}
+          </a>
+        </div>
+        <div className="news-meta">
+          {article.media_title} | {new Date(article.publish_date).toLocaleString('en-US', { hour12: true, month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric' })}
+        </div>
+        <div className="news-summary">
+          {article.summary_text}
+        </div>
+        <div className="hashtags">
+          {article.salient_entities_set.map((entity, idx) => (
+            <span key={idx}>#{entity} </span>
+          ))}
+        </div>
       </div>
-      <div className="sentiment">
-        {article.sentiment_predict_proba >= 0.5 ? '👍' : '👎'}
+      <div className="news-sentiment">
+        <img src={article.sentiment_predict_proba > 0.5 ? "/thumbs-up.png" : "/thumbs-down.png"} alt="sentiment" />
       </div>
-      <p className="summary-text">
-        {showFullText ? article.summary_text : `${article.summary_text.substring(0, 100)}... `}
-        <span className="read-more" onClick={toggleFullText}>
-          {showFullText ? 'Show less' : 'Read more'}
-        </span>
-      </p>
     </div>
   );
 };

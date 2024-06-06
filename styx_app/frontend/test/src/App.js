@@ -55,7 +55,7 @@ const App = () => {
         setCompanyName={setCompanyName}
         handleSubmit={handleSubmit}
       />
-      <NewsList articles={news} handleCompanyFilter={handleCompanyFilter} />
+      <NewsList articles={news} handleCompanyFilter={handleCompanyFilter} companyName={companyName} />
       <Pagination
         totalPages={totalPages}
         currentPage={currentPage}

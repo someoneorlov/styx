@@ -4,7 +4,7 @@ import './SearchBar.css';
 const SearchBar = ({ companyName, setCompanyName, handleSubmit }) => {
   return (
     <div className="search-bar">
-      <h2>Which company are you interested in?</h2>
+      <h2>PIZDA</h2>
       <p>We know everything.</p>
       <form onSubmit={handleSubmit}>
         <input
