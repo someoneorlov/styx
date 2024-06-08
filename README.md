@@ -8,44 +8,51 @@ Styx addresses the challenge of filtering and analyzing news content to focus sp
 
 ## Application's backend architecture
 <center>
-<img src='static/img/styx_architecture.png' width=800>
+<img src='static/img/styx_architecture.heic' width=800>
 </center> 
 
 ## Technologies and Tools
 
-This project is built using a robust stack of technologies and tools designed for scalability, efficiency, and ease of development:
+The project is built using a robust stack of technologies and tools designed for scalability, efficiency, and ease of development.
 
+The architectural design of the project comprises two main components. The first is a dedicated Ubuntu EC2-like server, which houses the core infrastructure services. The second is located in the AWS cloud and is responsible for the entire ML pipeline of the project.
+
+<img src="static/img/server-square-cloud-svgrepo-com-lines.svg" title="aws" width="50" height="50"/>&nbsp; ### Remote server part:
 - **Data Collection and Processing**: Python scripts for scraping and initial data processing.
 - **Database**: PostgreSQL for data storage, with Flyway for database migrations ensuring schema consistency across environments.
 - **Backend API**: FastAPI for serving data through RESTful endpoints, ensuring fast responses and asynchronous handling.
-- **Machine Learning**: REL for named entity recognition and linking, with plans to expand to advanced models for summarization and sentiment analysis.
-- **Orchestration and Workflow Management**: Airflow for managing ETL processes and automation of data pipeline tasks.
+- **Machine Learning**: REL for named entity recognition and linking, MLFlow for experiment tracking.
+- **Orchestration and Workflow Management**: Airflow for managing ETL processes and automating data pipeline tasks.
 - **Containerization**: Docker for creating isolated environments, with Docker Compose for multi-container orchestration.
 - **Monitoring**: Prometheus for monitoring system metrics, Grafana for dashboards, and Alertmanager for alerts.
 - **Version Control and CI/CD**: Git for version control, with GitHub Actions for continuous integration and deployment pipelines.
+- **Frontend**: React for the UI.
+- **Web Server**: Nginx.
 
-### Existing Services
-
-- **Scraping Service**: Automates the collection of news articles from various sources using predefined Google News Feed URLs. It leverages Python scripts to parse news content and store relevant information in the PostgreSQL database. This service is orchestrated using Airflow to run at scheduled intervals, ensuring the database is continually updated with the latest news articles.
-- **Data Provider API**: Interfaces with the PostgreSQL database for data retrieval and updates, ensuring efficient data management.
-- **Model Inference API**: Integrates the NER functionality, providing endpoints for processing and analyzing news articles.
+<img src="static/img/amazonwebservices-original-wordmark.svg" title="aws" width="50" height="50"/>&nbsp; ### AWS part:
+- **Data Storage**: Configured AWS RDS for main data storage and Flyway for database migrations, ensuring smooth schema management.
+- **Artifact Storage**: S3 for storing all artifacts, including models, datasets, and functions code.
+- **Data Flow**: Developed data processing workflows using AWS Step Functions, Amazon EventBridge, ECS tasks, and AWS Lambda for data transfer and inference.
+- **Infrastructure Management**: Utilized ECS clusters and custom Docker images for consistent environment setups across services.
+- **Container Registry**: ECR for managing and storing Docker images.
+- **Experiment Tracking**: Configured MLFlow on AWS to track experiments, manage models, and store artifacts across environments.
+- **Model Training**: Set up AWS SageMaker for model training and experimenting, deploying to different endpoints for test and production.
+- **Model Deployment**: Integrated SageMaker endpoints for model predictions, storing results in RDS DB.
 
 
 ## ML Part of the Project
 
-Currently, the project utilizes the REL library for named entity recognition, focusing on identifying company names within news articles. The next steps involve expanding the ML component to include:
-
-- **News Summarization**: Developing models to generate concise summaries of news articles.
-- **Sentiment Analysis**: Implementing sentiment analysis to evaluate the positive or negative tone of news related to specified companies.
+- **Named Entity Recognition**: The project utilizes the REL library and the approach described in Grönberg, D. (2021). Extracting Salient Named Entities from Financial News Articles.
+- **News Summarization**: Baseline fine-tuned FLAN-T5-small model using Hugging Face libraries to generate concise summaries of news articles.
+- **Sentiment Analysis**: Baseline CatBoost classifier for sentiment analysis to evaluate the positive or negative tone of news related to specified companies.
 
 ## Future Plans
 
 Moving forward, the project will focus on enhancing its capabilities and user experience:
 
-1. **Advanced ML Models**: Integrate more sophisticated ML models for summarization and sentiment analysis.
-2. **Frontend Development**: Design and implement a user-friendly interface for interacting with the service.
-3. **User Feedback Loop**: Establish mechanisms for collecting user feedback to continually refine and improve the service.
-4. **Comprehensive Monitoring and Error Handling**: Expand monitoring and alerting systems to ensure high availability and reliability.
+1. **Advanced ML Models**: Integrate more sophisticated ML models, fine-tune open-source LLM models, build multi-agent solutions, and compare them with proprietary models like GPT-4.
+2. **User Feedback Loop**: Establish mechanisms for collecting user feedback to continually refine and improve the service.
+3. **Comprehensive Monitoring and Error Handling**: Expand monitoring and alerting systems to ensure high availability and reliability.
 
 ## License
 
@@ -54,51 +61,63 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Project Organization
 
     ├── LICENSE
-    ├── README.md          <- The top-level README for developers using this project.
-    ├── alertmanager       <- Configuration for Alertmanager to handle alerts sent by Prometheus.
+    ├── README.md              <- The top-level README for developers using this project.
+    ├── AWS
+    │   ├── ecs                <- ECS Tasks defenitions and scripts.
+    │   ├── flyway             <- Flyway confing and SQL scripts.
+    │   ├── lambda             <- Lambda functions and layers packages.
+    │   ├── sagemaker          <- Model inference and endpoint scripts.
+    │   └── step_functions     <- StepFunctions state machines defenitions.
     │
-    ├── dags               <- Airflow DAGs for orchestrating ETL tasks.
+    ├── alertmanager           <- Configuration for Alertmanager to handle alerts sent by Prometheus.
+    │
+    ├── dags                   <- Airflow DAGs for orchestrating ETL tasks.
     │
     ├── data
-    │   ├── external       <- Data from third party sources.
-    │   ├── interim        <- Intermediate data that has been transformed.
-    │   ├── processed      <- The final, canonical data sets for modeling.
-    │   └── raw            <- The original, immutable data dump.
+    │   ├── external           <- Data from third party sources.
+    │   ├── interim            <- Intermediate data that has been transformed.
+    │   ├── processed          <- The final, canonical data sets for modeling.
+    │   └── raw                <- The original, immutable data dump.
     │
-    ├── docker-compose.yml <- Defines and runs multi-container Docker applications.
-    ├── Dockerfile.*       <- Dockerfiles for various services (Airflow, Flyway, Jupyter, Postgres).
+    ├── docker-compose.yml     <- Defines and runs multi-container Docker applications.
+    ├── Dockerfile.*           <- Dockerfiles for various services (Airflow, Flyway, Jupyter, Postgres).
     │
-    ├── docs               <- Sphinx project for documentation.
+    ├── docs                   <- Sphinx project for documentation.
     │
-    ├── grafana            <- Grafana dashboards and provisioning for monitoring.
+    ├── grafana                <- Grafana dashboards and provisioning for monitoring.
     │   ├── dashboards
     │   └── provisioning
     │
-    ├── init_db_prod       <- Scripts and templates for initializing the production database.
-    ├── init_db_test       <- Scripts and templates for initializing the test database.
+    ├── init_db_prod           <- Scripts and templates for initializing the production database.
+    ├── init_db_test           <- Scripts and templates for initializing the test database.
     │
-    ├── notebooks          <- Jupyter notebooks. Naming convention is a number (for ordering),
-    │                         the creator's initials, and a short `-` delimited description, e.g.
-    │                         `1.0-jqp-initial-data-exploration`.
+    ├── notebooks              <- Jupyter notebooks. Naming convention is a number (for ordering),
+    │                             the creator's initials, and a short `-` delimited description, e.g.
+    │                             `1.0-jqp-initial-data-exploration`.
     │
-    ├── prometheus         <- Prometheus alerting rules and configuration
+    ├── prometheus             <- Prometheus alerting rules and configuration
     │
-    ├── pyproject.toml     <- Project metadata and dependencies file for Poetry.
+    ├── pyproject.toml         <- Project metadata and dependencies file for Poetry.
     │
-    ├── references         <- Data dictionaries, manuals, and all other explanatory materials.
+    ├── references             <- Data dictionaries, manuals, and all other explanatory materials.
     │
-    ├── reports            <- Generated analysis as HTML, PDF, LaTeX, etc.
-    │   └── figures        <- Generated graphics and figures to be used in reporting
+    ├── reports                <- Generated analysis as HTML, PDF, LaTeX, etc.
+    │   └── figures            <- Generated graphics and figures to be used in reporting
     │
-    ├── requirements       <- Dependencies
+    ├── requirements           <- Dependencies
     │
-    ├── scripts            <- Scripts for various setup tasks and operations.
+    ├── scripts                <- Scripts for various setup tasks and operations.
     │
-    ├── sql                <- SQL scripts and templates for database setup and migrations.
+    ├── sql                    <- SQL scripts and templates for database setup and migrations.
     │
-    ├── src                <- Source code for core libraries or utilities that do not fit the service-based architecture.
+    ├── src                    <- Source code for core libraries or utilities that do not fit the service-based architecture.
     │
-    └── styx_app           <- Main application code for the project, including API services.
-        ├── model_inference_api
-        ├── data_provider_api
-        └── scraper_service
+    ├── styx_app               <- Main application code for the project, including API services.
+    │   ├── data_provider_api
+    │   ├── frontend
+    │   ├── model_inference_api
+    │   ├── ner_services
+    │   ├── nginx
+    │   └── scraper_service
+    │
+    └── styx_packages          <- Auxilliary custom libraries.
