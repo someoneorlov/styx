@@ -17,7 +17,7 @@ The project is built using a robust stack of technologies and tools designed for
 
 The architectural design of the project comprises two main components. The first is a dedicated Ubuntu EC2-like server, which houses the core infrastructure services. The second is located in the AWS cloud and is responsible for the entire ML pipeline of the project.
 
-<img src="static/img/server-square-cloud-svgrepo-com-lines.svg" title="aws" width="50" height="50"/>&nbsp; <h3>Remote server part</h3>:
+<h3><img src="static/img/server-square-cloud-svgrepo-com-lines.svg" title="aws" width="50" height="50"/>&nbsp; Remote server part:</h3>
 - **Data Collection and Processing**: Python scripts for scraping and initial data processing.
 - **Database**: PostgreSQL for data storage, with Flyway for database migrations ensuring schema consistency across environments.
 - **Backend API**: FastAPI for serving data through RESTful endpoints, ensuring fast responses and asynchronous handling.
@@ -29,7 +29,7 @@ The architectural design of the project comprises two main components. The first
 - **Frontend**: React for the UI.
 - **Web Server**: Nginx.
 
-<img src="static/img/amazonwebservices-original-wordmark.svg" title="aws" width="50" height="50"/>&nbsp; <h3>AWS part</h3>:
+<h3><img src="static/img/amazonwebservices-original-wordmark.svg" title="aws" width="50" height="50"/>&nbsp; AWS part:</h3>
 - **Data Storage**: Configured AWS RDS for main data storage and Flyway for database migrations, ensuring smooth schema management.
 - **Artifact Storage**: S3 for storing all artifacts, including models, datasets, and functions code.
 - **Data Flow**: Developed data processing workflows using AWS Step Functions, Amazon EventBridge, ECS tasks, and AWS Lambda for data transfer and inference.
