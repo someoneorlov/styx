@@ -17,7 +17,7 @@ The project is built using a robust stack of technologies and tools designed for
 
 The architectural design of the project comprises two main components. The first is a dedicated Ubuntu EC2-like server, which houses the core infrastructure services. The second is located in the AWS cloud and is responsible for the entire ML pipeline of the project.
 
-<h3><img src="static/img/server-square-cloud-svgrepo-com-lines.svg" title="aws" width="50" height="50"/>&nbsp; Remote server part:</h3>
+<p><img src="static/img/server-square-cloud-svgrepo-com-lines.svg" title="aws" width="50" height="50"/>&nbsp; <strong>Remote server part:</strong></p>
 - **Data Collection and Processing**: Python scripts for scraping and initial data processing.
 - **Database**: PostgreSQL for data storage, with Flyway for database migrations ensuring schema consistency across environments.
 - **Backend API**: FastAPI for serving data through RESTful endpoints, ensuring fast responses and asynchronous handling.
