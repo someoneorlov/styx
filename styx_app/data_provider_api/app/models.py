@@ -82,6 +82,9 @@ class ArticleMainPage(OurBaseModel):
 
 class ArticlesMPBatch(OurBaseModel):
     articles: List[ArticleMainPage]
+    total_pages: int
+    current_page: int
+    total_items: int
 
 
 class ArticleRawAWS(OurBaseModel):

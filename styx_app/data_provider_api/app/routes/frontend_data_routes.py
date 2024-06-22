@@ -18,11 +18,11 @@ router = APIRouter()
 async def fetch_news_endpoint(
     db: Session = Depends(get_db_session),
     company_name: Optional[str] = None,
-    batch_size: int = 10,
+    page: int = 1,
+    page_size: int = 10,
 ):
     try:
-        # Pass company_name to the service function; it's None by default
-        news_batch = fetch_news(db, company_name, batch_size)
+        news_batch = fetch_news(db, company_name, page, page_size)
         logger.info(
             f"Fetched {len(news_batch.articles)} articles"
             + (f" filtered by company {company_name}" if company_name else " latest")
