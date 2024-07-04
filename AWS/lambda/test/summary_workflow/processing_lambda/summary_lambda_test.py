@@ -11,19 +11,32 @@ from styx_packages.data_connector.db_models import (
     AWSRawNewsArticle,
     AWSSummaryResults,
 )
+from openai import OpenAI
 
-ENDPOINT_NAME = os.getenv("ENDPOINT_NAME", "flan-t5-small-finetuned-6144-5")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
 REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
-SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
-prefix = os.getenv("MODEL_PREFIX", "summarize: ")
+DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
+OPENAI_SECRET_NAME = "openai/styx"
+prefix = os.getenv("MODEL_PREFIX", "")
 batch_size = int(os.getenv("FETCH_RAW_BATCH_SIZE", 10))
 model_batch_size = int(os.getenv("MODEL_BATCH_SIZE", 5))
 input_length = int(os.getenv("INP_TOKEN_LENGTH", 256))
 
 use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
-runtime = boto3.client("runtime.sagemaker")
+
+
+role = (
+    "You are a Financial Analyst specializing in News Sentiment Evaluation, "
+    "responsible for analyzing and interpreting financial news to assess its impact "
+    "on market conditions. You create concise summaries of news articles and reports"
+)
+
+task = (
+    "Create concise summarie of the following news. "
+    "The summary should be 20-40 words long. NO LONGER THAN 40 WORDS!"
+    "News text: "
+)
 
 
 def get_secret(secret_name, region_name=REGION_NAME):
@@ -38,6 +51,38 @@ def get_secret(secret_name, region_name=REGION_NAME):
 
     secret = get_secret_value_response["SecretString"]
     return json.loads(secret)
+
+
+def get_db_session(DB_SECRET_NAME, REGION_NAME):
+    db_secrets = get_secret(DB_SECRET_NAME, REGION_NAME)
+    AWS_DB_HOST = db_secrets["host"]
+    AWS_DB_PORT = db_secrets["port"]
+    AWS_DB_NAME = db_secrets["dbname"]
+    AWS_DB_USER = db_secrets["username"]
+    AWS_DB_PASS = db_secrets["password"]
+
+    engine = get_engine(
+        AWS_DB_HOST,
+        AWS_DB_PORT,
+        AWS_DB_NAME,
+        AWS_DB_USER,
+        AWS_DB_PASS,
+        use_file_handler=use_file_handler,
+    )
+    SessionLocal = session_factory(engine, use_file_handler=use_file_handler)
+    return SessionLocal
+
+
+def get_openai_client(OPENAI_SECRET_NAME, REGION_NAME):
+    openai_secrets = get_secret(OPENAI_SECRET_NAME, REGION_NAME)
+    OPENAI_ORGANIZATION = openai_secrets["OPENAI_ORGANIZATION"]
+    OPENAI_PROJECT = openai_secrets["OPENAI_PROJECT"]
+    OPENAI_API_KEY = openai_secrets["OPENAI_API_KEY"]
+
+    client = OpenAI(
+        api_key=OPENAI_API_KEY, organization=OPENAI_ORGANIZATION, project=OPENAI_PROJECT
+    )
+    return client
 
 
 def fetch_raw_data(db, batch_size=batch_size):
@@ -67,21 +112,33 @@ def fetch_raw_data(db, batch_size=batch_size):
         raise
 
 
-def call_sagemaker_endpoint(payload):
-    try:
-        response = runtime.invoke_endpoint(
-            EndpointName=ENDPOINT_NAME,
-            ContentType="application/json",
-            Body=json.dumps(payload),
+def preprocess_input(text: str, input_length: int, prefix: str) -> str:
+    tokens = text.split()
+    if len(tokens) > input_length - 1:
+        return (
+            prefix
+            + " ".join(tokens[: (input_length - 1) // 2])
+            + " "
+            + " ".join(tokens[-(input_length - 1) // 2 :])
         )
-        result = response["Body"].read().decode("utf-8")
-        result_json = json.loads(result)  # Parse the JSON response
-        return result_json
-    except ClientError as e:
-        logger.error(f"ClientError while calling SageMaker endpoint: {e}")
-        raise
+    else:
+        return prefix + text
+
+
+def call_openai_api(text, openai_client):
+    prompt = task + text
+    try:
+        response = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": role},
+                {"role": "user", "content": prompt},
+            ],
+        )
+        summary = response.choices[0].message.content.strip()
+        return {"generated_text": summary}
     except Exception as e:
-        logger.error(f"Unexpected error occurred while calling SageMaker endpoint: {e}")
+        logger.error(f"Error while calling OpenAI API: {e}")
         raise
 
 
@@ -134,38 +191,9 @@ def mark_news_as_processed(db, news_ids):
         raise
 
 
-def preprocess_input(text: str, input_length: int, prefix: str) -> str:
-    tokens = text.split()
-    if len(tokens) > input_length - 1:
-        return (
-            prefix
-            + " ".join(tokens[: (input_length - 1) // 2])
-            + " "
-            + " ".join(tokens[-(input_length - 1) // 2 :])
-        )
-    else:
-        return prefix + text
-
-
 def lambda_handler(event, context):
-    secrets = get_secret(SECRET_NAME, REGION_NAME)
-
-    AWS_DB_HOST = secrets["host"]
-    AWS_DB_PORT = secrets["port"]
-    AWS_DB_NAME = secrets["dbname"]
-    AWS_DB_USER = secrets["username"]
-    AWS_DB_PASS = secrets["password"]
-
-    engine = get_engine(
-        AWS_DB_HOST,
-        AWS_DB_PORT,
-        AWS_DB_NAME,
-        AWS_DB_USER,
-        AWS_DB_PASS,
-        use_file_handler=use_file_handler,
-    )
-    SessionLocal = session_factory(engine, use_file_handler=use_file_handler)
-    db = SessionLocal()
+    db = get_db_session(DB_SECRET_NAME, REGION_NAME)
+    openai_client = get_openai_client(OPENAI_SECRET_NAME, REGION_NAME)
 
     try:
         data = fetch_raw_data(db)
@@ -182,18 +210,9 @@ def lambda_handler(event, context):
                 .apply(lambda x: preprocess_input(x, input_length, prefix))
                 .tolist()
             )
-            payload = {
-                "inputs": batch_text,
-                "parameters": {
-                    "do_sample": True,
-                    "temperature": 0.7,
-                    "top_p": 0.7,
-                    "top_k": 50,
-                    "max_length": 512,
-                    "repetition_penalty": 1.03,
-                },
-            }
-            batch_predictions = call_sagemaker_endpoint(payload)
+            batch_predictions = [
+                call_openai_api(text, openai_client) for text in batch_text
+            ]
             predictions.extend(batch_predictions)
             current_time = time.time()
             logger.info(

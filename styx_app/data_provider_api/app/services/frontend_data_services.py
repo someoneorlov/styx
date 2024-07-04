@@ -85,7 +85,6 @@ def query_news_from_db(db, company_name, page, page_size):
     query = (
         db.query(
             RawNewsArticle.title,
-            RawNewsArticle.text,
             RawNewsArticle.publish_date,
             RawNewsArticle.canonical_link,
             RawNewsArticle.media_link,
@@ -120,7 +119,6 @@ def transform_news_batch(latest_news_batch):
     front_news_items: List[ArticleMainPage] = []
     for (
         title,
-        text,
         publish_date,
         canonical_link,
         media_link,
@@ -131,7 +129,6 @@ def transform_news_batch(latest_news_batch):
     ) in latest_news_batch:
         article_data = ArticleMainPage(
             title=title,
-            text=text,
             publish_date=publish_date,
             canonical_link=canonical_link,
             media_link=media_link,

@@ -70,7 +70,6 @@ class NewsIDs(OurBaseModel):
 
 class ArticleMainPage(OurBaseModel):
     title: str
-    text: str
     publish_date: datetime
     canonical_link: str
     media_link: str

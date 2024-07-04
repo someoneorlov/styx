@@ -103,7 +103,7 @@ id_aws_ecs_task
 id_aws_ecs_task.pub
 
 # Ignore dependency directories
-/AWS/lambda/common_layer/python/
+/AWS/lambda/**/python/
 
 # Ignore all ZIP files in AWS/lambda and its subdirectories
 AWS/lambda/**/*.zip

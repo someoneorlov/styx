@@ -10,23 +10,24 @@ import './App.css';
 const App = () => {
   const [news, setNews] = useState([]);
   const [companyName, setCompanyName] = useState('');
-  const [batchSize] = useState(10);
+  const [page] = useState(1);
+  const [pageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const fetchNews = useCallback(async (page = 1, company = '') => {
+  const fetchNews = useCallback(async (page_num = 1, company = '') => {
     try {
-      console.log(`Fetching news for page ${page} and company ${company}`);
+      console.log(`Fetching news for page ${page_num} and company ${company}`);
       const response = await axios.get(`/api/front-data/news`, {
-        params: { company_name: company, batch_size: batchSize, page }
+        params: { company_name: company, page_size: pageSize, page: page, page_num }
       });
       console.log('API Response:', response.data); // Log the API response
       setNews(response.data.articles);
-      setTotalPages(Math.ceil(response.data.total / batchSize)); // Assuming response includes total articles count
+      setTotalPages(Math.ceil(response.data.total / pageSize)); // Assuming response includes total articles count
     } catch (error) {
       console.error('Error fetching news:', error);
     }
-  }, [batchSize]);
+  }, [pageSize]);
 
   useEffect(() => {
     fetchNews();

@@ -8,7 +8,7 @@ setup(
     ),
     description="Shared packages for Styx project",
     install_requires=[
-        "sqlalchemy",  # Add other dependencies if necessary
-        "psycopg2-binary",
+        "sqlalchemy==2.0.25",  # Add other dependencies if necessary
+        "psycopg2-binary==2.9.9",
     ],
 )
