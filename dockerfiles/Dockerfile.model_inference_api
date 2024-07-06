@@ -7,8 +7,8 @@ WORKDIR /app
 COPY ./styx_packages /app/styx_packages
 RUN pip install ./styx_packages
 
-COPY ./styx_app/model_inference_api/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY ./requirements/requirements_model_inference_api.txt .
+RUN pip install --no-cache-dir -r requirements_model_inference_api.txt
 
 COPY ./styx_app/model_inference_api/app ./app/
 

@@ -2,3 +2,5 @@ requests==2.31.0
 fastapi==0.109.1
 pydantic==1.10.7
 uvicorn==0.21.1
+pytest==7.4.4
+httpx

@@ -7,3 +7,4 @@ psycopg2-binary==2.9.7
 redis==5.0.1
 pytest==7.4.4
 httpx
+boto3==1.34

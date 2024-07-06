@@ -1,1 +1,0 @@
-CREATE INDEX IF NOT EXISTS idx_gin_ner_results_entities ON ner_results USING gin (salient_entities_set);

@@ -4,7 +4,7 @@ FROM postgres:16.0
 RUN apt-get update && apt-get install -y gettext-base
 
 # Copy initialization scripts
-COPY --chmod=700 ./init_db_test/* /docker-entrypoint-initdb.d/
+COPY --chmod=700 ./init_db/* /docker-entrypoint-initdb.d/
 
 # Change ownership to postgres user (user ID 999)
 RUN chown -R 999:999 /docker-entrypoint-initdb.d/
