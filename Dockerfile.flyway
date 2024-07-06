@@ -15,14 +15,13 @@ RUN mkdir -p /flyway/sql && chown -R flywayuser:flywayuser /flyway/sql
 USER flywayuser
 
 # Copy both test and production migration templates
-COPY --chown=flywayuser:flywayuser ./sql/templates/test /flyway/templates/test
-COPY --chown=flywayuser:flywayuser ./sql/templates/prod /flyway/templates/prod
+COPY --chown=flywayuser:flywayuser ./sql /flyway/sql
 
 # Copy the preprocessing script
-COPY --chown=flywayuser:flywayuser ./scripts/templates_to_sql.sh /flyway
+COPY --chown=flywayuser:flywayuser ./scripts/migrate.sh /flyway
 
 # Set the correct permissions for the script
-RUN chmod +x /flyway/templates_to_sql.sh
+RUN chmod +x /flyway/migrate.sh
 
 # Set the entrypoint to run the preprocessing script and then Flyway
-ENTRYPOINT ["/flyway/templates_to_sql.sh"]
+ENTRYPOINT ["/flyway/migrate.sh"]
