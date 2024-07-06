@@ -55,23 +55,23 @@ x-airflow-common:
     #   condition: service_started
 
 services:  
-  # nginx:
-  #   build:
-  #     context: .
-  #     dockerfile: ./styx_app/nginx/Dockerfile
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   volumes:
-  #     - /etc/letsencrypt:/etc/letsencrypt
+  nginx:
+    build:
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt
       # - .htpasswd:/etc/nginx/.htpasswd 
       # - react-build-prod:/usr/share/nginx/html/prod
       # - react-build-test:/usr/share/nginx/html/test
-    # depends_on:
+    depends_on:
       # - data_provider_api_prod
-      # - data_provider_api_test
+      - data_provider_api_test
       # - frontend_prod
-      # - frontend_test
+      - frontend_test
 
   statsd-exporter:
     image: prom/statsd-exporter:v0.26.0
@@ -151,7 +151,7 @@ services:
   jupyterlab:
     build:
       context: .
-      dockerfile: Dockerfile.jupyter
+      dockerfile: ./dockerfiles/Dockerfile.jupyterlab
     env_file:
       - .env
       - .env.prod
@@ -179,7 +179,7 @@ services:
   mlflow:
     build:
       context: .
-      dockerfile: Dockerfile.mlflow
+      dockerfile: ./dockerfiles/Dockerfile.mlflow
     ports:
       - "5000:5000"
     environment:
@@ -187,7 +187,7 @@ services:
       MLFLOW_ARTIFACT_ROOT: ${MLFLOW_ARTIFACT_ROOT}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      AWS_DEFAULT_REGION: us-east-1
+      AWS_DEFAULT_REGION: ${AWS_REGION}
     volumes:
       - mlflow-data:/mlflow
     depends_on:
@@ -238,7 +238,7 @@ services:
     <<: *airflow-common
     build:
       context: .
-      dockerfile: Dockerfile.airflow
+      dockerfile: ./dockerfiles/Dockerfile.airflow
     command: webserver
     ports:
       - "8080:8080"

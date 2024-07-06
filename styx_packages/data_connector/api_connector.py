@@ -2,10 +2,11 @@ import backoff
 import requests
 from styx_packages.styx_logger.logging_config import setup_logger
 
-logger = setup_logger(__name__)
 
+def make_request(url, method="get", logger=None, **kwargs):
+    if not logger:
+        logger = setup_logger(__name__)
 
-def make_request(url, method="get", **kwargs):
     @backoff.on_exception(
         backoff.expo,
         requests.exceptions.RequestException,

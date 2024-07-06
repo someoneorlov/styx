@@ -6,9 +6,9 @@ RUN apt-get update && apt-get install -y vim
 
 USER $MAMBA_USER
 
-COPY requirements/requirements_jupyter.txt /requirements/
+COPY ./requirements/requirements_jupyterlab.txt /requirements/
 
-RUN micromamba install --file /requirements/requirements_jupyter.txt --yes --channel conda-forge --name base
+RUN micromamba install --file /requirements/requirements_jupyterlab.txt --yes --channel conda-forge --name base
 
 RUN pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
 

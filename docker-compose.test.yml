@@ -3,7 +3,7 @@ services:
   db_test:
     build: 
       context: .
-      dockerfile: Dockerfile.postgres
+      dockerfile: ./dockerfiles/Dockerfile.db_postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -24,7 +24,7 @@ services:
   flyway:
     build: 
       context: .
-      dockerfile: Dockerfile.flyway
+      dockerfile: ./dockerfiles/Dockerfile.flyway
     environment:
       ENVIRONMENT: ${ENVIRONMENT}
       POSTGRES_DB: ${POSTGRES_DB}
@@ -32,7 +32,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASS}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
-      DB_PORT: 5432
+      DB_PORT: ${DB_PORT_INNER}
     depends_on:
       db_test:
         condition: service_healthy
@@ -50,7 +50,7 @@ services:
   inference_api_test:
     build:
         context:  .
-        dockerfile: ./styx_app/model_inference_api/Dockerfile.test
+        dockerfile: ./dockerfiles/Dockerfile.model_inference_api
     image: inference_api_test_img
     environment:
       REL_API_URL: ${REL_API_URL}
@@ -64,11 +64,11 @@ services:
   data_provider_api_test:
     build:
         context: .
-        dockerfile: ./styx_app/data_provider_api/Dockerfile.test
+        dockerfile: ./dockerfiles/Dockerfile.data_provider_api
     image: data_provider_api_test_img
     environment:
       DB_HOST: ${DB_HOST}
-      DB_PORT: 5432
+      DB_PORT: ${DB_PORT_INNER}
       DB_NAME: ${POSTGRES_DB}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
@@ -87,7 +87,8 @@ services:
 
   frontend_test:
     build:
-      context: ./styx_app/frontend/
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.frontend
     environment:
       - WATCHPACK_POLLING=true
     depends_on:
@@ -95,8 +96,8 @@ services:
   
   scraper:
     build:
-      context: styx_app/scraper_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./dockerfiles/Dockerfile.scraper_service
     image: styx_scraper_img
     environment:
       DB_HOST: ${DB_HOST}

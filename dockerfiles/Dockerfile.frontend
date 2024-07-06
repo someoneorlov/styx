@@ -1,0 +1,7 @@
+FROM node:22-alpine AS test_builder
+ENV NODE_ENV production
+WORKDIR /app
+COPY ./styx_app/frontend/package.json ./styx_app/frontend/package-lock.json ./
+RUN npm install
+COPY ./styx_app/frontend/ .
+RUN npm run build
