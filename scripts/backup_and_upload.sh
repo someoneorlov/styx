@@ -1,9 +1,10 @@
 #!/bin/bash
 
-CUR_DIR=$(dirname "$0")
+cur_dir=$(dirname "$0")
 
 # Load .env file
-source "$CUR_DIR/../.env"
+source "$cur_dir/../.env"
+source "$cur_dir/../.env.prod"
 
 # Network check function
 check_network() {
@@ -12,68 +13,68 @@ check_network() {
 }
 
 # Backup file name with date and time
-DATE_TIME=$(date +"%Y%m%d-%H%M%S")
-BACKUP_FILE="$CUR_DIR/../data/yandex_disk_backup/backup-$DATE_TIME.backup"
+date_time=$(date +"%Y%m%d-%H%M%S")
+backup_file="$cur_dir/../data/yandex_disk_backup/backup-$date_time.backup"
 
 # Log file
-LOG_FILE="$CUR_DIR/../logs/yandex_disk_logfile.log"
+log_file="$cur_dir/../logs_prod/yandex_disk_logfile.log"
 
 # Create a custom-format backup
-PGPASSWORD=$POSTGRES_PASS_PROD pg_dump -h localhost -p 5432 -U $POSTGRES_USER_PROD -Fc $POSTGRES_DB_PROD > $BACKUP_FILE
+PGPASSWORD=$POSTGRES_PASS pg_dump -h localhost -p 5432 -U $POSTGRES_USER -Fc $POSTGRES_DB > $backup_file
 
 # Check network connectivity
 if ! check_network; then
-    echo "$(date) - Network is not available." >> $LOG_FILE
+    echo "$(date) - Network is not available." >> $log_file
     exit 1
 fi
 
 # Get upload URL from Yandex Disk API
-UPLOAD_URL=$(curl -s -X GET -G 'https://cloud-api.yandex.net/v1/disk/resources/upload' \
+upload_url=$(curl -s -X GET -G 'https://cloud-api.yandex.net/v1/disk/resources/upload' \
 -H "Authorization: OAuth $YANDEX_OAUTH_TOKEN" \
--d "path=/styx_backup/$(basename $BACKUP_FILE)&overwrite=true" | jq -r '.href')
+-d "path=/styx_backup/$(basename $backup_file)&overwrite=true" | jq -r '.href')
 
 # Check if upload URL is received
-if [ -z "$UPLOAD_URL" ]; then
-    echo "$(date) - Failed to get upload URL." >> $LOG_FILE
+if [ -z "$upload_url" ]; then
+    echo "$(date) - Failed to get upload URL." >> $log_file
     exit 1
 fi
 
 # Upload the file to Yandex Disk
-if curl -T "$BACKUP_FILE" "$UPLOAD_URL"; then
-    echo "$(date) - Backup and upload successful." >> $LOG_FILE
+if curl -T "$backup_file" "$upload_url"; then
+    echo "$(date) - Backup and upload successful." >> $log_file
 else
-    echo "$(date) - Backup or upload failed." >> $LOG_FILE
+    echo "$(date) - Backup or upload failed." >> $log_file
 fi
 
 # Local backup rotation: keep the last N backups
-MAX_BACKUPS=7
-BACKUP_DIR="$CUR_DIR/../data/yandex_disk_backup"
-BACKUP_FILES_LOCAL=($(ls -1tr $BACKUP_DIR/backup-*.backup))
-if [ ${#BACKUP_FILES_LOCAL[@]} -gt $MAX_BACKUPS ]; then
-    NUM_FILES_TO_DELETE=$((${#BACKUP_FILES_LOCAL[@]} - $MAX_BACKUPS))
-    for ((i=0; i<$NUM_FILES_TO_DELETE; i++)); do
-        echo "Deleting old local backup: ${BACKUP_FILES_LOCAL[i]}" >> $LOG_FILE
-        rm -f "${BACKUP_FILES_LOCAL[i]}"
+max_backups=7
+backup_dir="$cur_dir/../data/yandex_disk_backup"
+backup_files_local=($(ls -1tr $backup_dir/backup-*.backup))
+if [ ${#backup_files_local[@]} -gt $max_backups ]; then
+    num_files_to_delete=$((${#backup_files_local[@]} - $max_backups))
+    for ((i=0; i<$num_files_to_delete; i++)); do
+        echo "Deleting old local backup: ${backup_files_local[i]}" >> $log_file
+        rm -f "${backup_files_local[i]}"
     done
 fi
 
 # Fetch backup file names from Yandex Disk
-LIMIT=10000
-MEDIA_TYPE="data"
-FIELDS="name"
-FILES_JSON=$(curl -s -H "Authorization: OAuth $YANDEX_OAUTH_TOKEN" \
-"https://cloud-api.yandex.net/v1/disk/resources/files?limit=$LIMIT&media_type=$MEDIA_TYPE&fields=items.$FIELDS")
-BACKUP_FILES=$(echo $FILES_JSON | jq -r '.items[] | select(.name | startswith("backup-")) | .name' | sort | head -n -$MAX_BACKUPS)
+limit=10000
+media_type="data"
+fields="name"
+files_json=$(curl -s -H "Authorization: OAuth $YANDEX_OAUTH_TOKEN" \
+"https://cloud-api.yandex.net/v1/disk/resources/files?limit=$limit&media_type=$media_type&fields=items.$fields")
+backup_fileS=$(echo $files_json | jq -r '.items[] | select(.name | startswith("backup-")) | .name' | sort | head -n -$max_backups)
 
 # Delete old backups from Yandex Disk
-for file in $BACKUP_FILES; do
-    DELETE_URL="https://cloud-api.yandex.net/v1/disk/resources?path=/styx_backup/$file&permanently=true"
-    DELETE_RESPONSE=$(curl -s -X DELETE -H "Authorization: OAuth $YANDEX_OAUTH_TOKEN" "$DELETE_URL")
-    if [ -n "$DELETE_RESPONSE" ]; then
+for file in $backup_fileS; do
+    delete_url="https://cloud-api.yandex.net/v1/disk/resources?path=/styx_backup/$file&permanently=true"
+    delete_response=$(curl -s -X DELETE -H "Authorization: OAuth $YANDEX_OAUTH_TOKEN" "$delete_url")
+    if [ -n "$delete_response" ]; then
         echo "Failed to delete old backup from Yandex Disk: $file"  # Debug line
-        echo "$(date) - Failed to delete old backup from Yandex Disk: $file" >> $LOG_FILE
+        echo "$(date) - Failed to delete old backup from Yandex Disk: $file" >> $log_file
     else
         echo "Deleted old backup from Yandex Disk: $file"  # Debug line
-        echo "$(date) - Deleted old backup from Yandex Disk: $file" >> $LOG_FILE
+        echo "$(date) - Deleted old backup from Yandex Disk: $file" >> $log_file
     fi
 done

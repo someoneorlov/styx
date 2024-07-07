@@ -37,7 +37,7 @@ x-airflow-common:
     AIRFLOW__SCHEDULER__STATSD_PREFIX: airflow
   volumes:
     - ${AIRFLOW_PROJ_DIR:-.}/dags:/opt/airflow/dags
-    - ${AIRFLOW_PROJ_DIR:-.}/logs:/opt/airflow/logs
+    - ${AIRFLOW_PROJ_DIR:-.}/logs_prod:/opt/airflow/logs
     - ${AIRFLOW_PROJ_DIR:-.}/config:/opt/airflow/config
     - ${AIRFLOW_PROJ_DIR:-.}/plugins:/opt/airflow/plugins
     - /var/run/docker.sock:/var/run/docker.sock
@@ -49,10 +49,10 @@ x-airflow-common:
     &airflow-common-depends-on
     postgres:
       condition: service_healthy
-    # db_prod:
-    #   condition: service_healthy
-    # redis_prod:
-    #   condition: service_started
+    db_prod:
+      condition: service_healthy
+    redis_prod:
+      condition: service_started
 
 services:  
   nginx:
@@ -68,10 +68,10 @@ services:
       # - react-build-prod:/usr/share/nginx/html/prod
       # - react-build-test:/usr/share/nginx/html/test
     depends_on:
-      # - data_provider_api_prod
-      - data_provider_api_test
-      # - frontend_prod
-      - frontend_test
+      - data_provider_api_prod
+      # - data_provider_api_test
+      - frontend_prod
+      # - frontend_test
 
   statsd-exporter:
     image: prom/statsd-exporter:v0.26.0
@@ -95,7 +95,7 @@ services:
     # environment:
     #   DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASS}@${DB_HOST}:${DB_PORT_INNER}/${POSTGRES_DB}?sslmode=disable"
     links:
-      # - db_prod
+      - db_prod
       - prometheus
     
   prometheus:
