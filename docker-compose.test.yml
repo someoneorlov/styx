@@ -58,6 +58,7 @@ services:
       - "8002:8002"
     volumes:
       - ./logs_test/:/var/log/
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${MODEL_INFERENCE_API_PORT}"]
     depends_on:
       - rel
 
@@ -79,6 +80,7 @@ services:
       - "8004:8004"
     volumes:
       - ./logs_test/:/var/log/
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "${DATA_PROVIDER_API_PORT}"]
     depends_on:
       db_test:
         condition: service_healthy
