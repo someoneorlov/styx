@@ -1,1 +1,24 @@
 __pycache__
+
+# exclude old scripts from context by default
+/_archive/
+
+# exclude data from context by default
+/data/
+
+# exclude docs from context by default
+/docs/
+
+# exclude logs from context by default
+/logs/
+/logs_prod/
+/logs_test/
+
+# exclude notebooks from context by default
+/notebooks/
+
+# exclude references from context by default
+/references/
+
+# exclude static from context by default
+/static/

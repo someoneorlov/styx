@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 from airflow import DAG
 from airflow.operators.docker_operator import DockerOperator
@@ -16,25 +17,35 @@ default_args = {
     "retry_delay": timedelta(minutes=1),
 }
 
+env = "prod"
+# Load the common .env file
+load_dotenv("/opt/airflow/styx/.env")
+
+# Load the environment-specific .env file
+load_dotenv(f"/opt/airflow/styx/.env.{env}")
+
+LOG_DIR = os.getenv("LOG_DIR")
 
 with DAG(
-    "scrape_google_news_prod",
+    f"scrape_google_news_{env}",
     default_args=default_args,
-    schedule_interval="5 * * * *",
+    schedule_interval="15 * * * *",
     catchup=False,
 ) as dag:
+
     t1 = DockerOperator(
         task_id="run_scrap_container",
         image="styx_scraper_img",
-        container_name="styx_scraper_cont_prod",
+        container_name=f"styx_scraper_cont_{env}",
         api_version="auto",
         auto_remove=True,
         environment={
-            "DB_HOST": "db_prod",
-            "DB_NAME": os.getenv("DB_NAME_PROD", "default_db_name_inside"),
-            "DB_USER": os.getenv("DB_USER_PROD", "default_db_user_inside"),
-            "DB_PASS": os.getenv("DB_PASS_PROD", "default_db_password_inside"),
-            "SCRAPER_URL": os.getenv("SCRAPER_URL", "default_scraper_url_inside"),
+            "DB_HOST": os.getenv("DB_HOST"),
+            "DB_PORT": os.getenv("DB_PORT_INNER"),
+            "DB_NAME": os.getenv("POSTGRES_DB"),
+            "DB_USER": os.getenv("DB_USER"),
+            "DB_PASS": os.getenv("DB_PASS"),
+            "SCRAPER_URL": os.getenv("SCRAPER_URL"),
         },
         command=[
             "/bin/sh",
@@ -46,11 +57,11 @@ with DAG(
         mount_tmp_dir=False,
         mounts=[
             Mount(
-                source="/home/ec2-user/projects/styx/logs",
+                source=LOG_DIR,
                 target="/var/log",
                 type="bind",
             )
         ],
     )
 
-    t1
+t1

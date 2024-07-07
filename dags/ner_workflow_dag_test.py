@@ -26,7 +26,7 @@ REDIS_HOST = os.getenv("REDIS_HOST")
 REDIS_PORT = int(os.getenv("REDIS_PORT_INNER"))
 REDIS_PASS = os.getenv("REDIS_PASS")
 
-log_dir = "/opt/airflow/styx/logs_test" if env == "test" else "/opt/airflow/styx/logs"
+log_dir = f"/opt/airflow/styx/logs_{env}"
 
 default_args = {
     "owner": "airflow",

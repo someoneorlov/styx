@@ -1,6 +1,6 @@
 version: '3.8'
 services:
-  db_test:
+  db_prod:
     build: 
       context: .
       dockerfile: ./dockerfiles/Dockerfile.db_postgres
@@ -11,7 +11,7 @@ services:
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
     volumes:
-      - db-data-test:/var/lib/postgresql/data
+      - db-data-prod:/var/lib/postgresql/data
     ports:
       - "${DB_PORT_OUTER}:5432"
     healthcheck:
@@ -21,7 +21,7 @@ services:
       retries: 5
     restart: always
 
-  flyway_test:
+  flyway_prod:
     build: 
       context: .
       dockerfile: ./dockerfiles/Dockerfile.flyway
@@ -34,38 +34,38 @@ services:
       DB_PASS: ${DB_PASS}
       DB_PORT: ${DB_PORT_INNER}
     depends_on:
-      db_test:
+      db_prod:
         condition: service_healthy
 
-  redis_test:
+  redis_prod:
     image: redis:7.2.4
     ports:
       - "${REDIS_PORT_OUTER}:6379"
     volumes:
-      - redis-data-test:/data
+      - redis-data-prod:/data
     environment:
       REDIS_PASS: ${REDIS_PASS}
     command: ["redis-server", "--requirepass", "${REDIS_PASS}", "--appendonly", "yes"]
 
-  inference_api_test:
+  inference_api_prod:
     build:
         context:  .
         dockerfile: ./dockerfiles/Dockerfile.model_inference_api
-    image: inference_api_test_img
+    image: inference_api_prod_img
     environment:
       REL_API_URL: ${REL_API_URL}
     ports:
-      - "8002:8002"
+      - "8001:8001"
     volumes:
-      - ./logs_test/:/var/log/
+      - ./logs_prod/:/var/log/
     depends_on:
       - rel
 
-  data_provider_api_test:
+  data_provider_api_prod:
     build:
         context: .
         dockerfile: ./dockerfiles/Dockerfile.data_provider_api
-    image: data_provider_api_test_img
+    image: data_provider_api_prod_img
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT_INNER}
@@ -76,25 +76,25 @@ services:
       REDIS_PORT: ${REDIS_PORT_INNER}
       REDIS_PASS: ${REDIS_PASS}
     ports:
-      - "8004:8004"
+      - "8003:8003"
     volumes:
-      - ./logs_test/:/var/log/
+      - ./logs_prod/:/var/log/
     depends_on:
-      db_test:
+      db_prod:
         condition: service_healthy
-      redis_test:
+      redis_prod:
         condition: service_started
 
-  frontend_test:
+  frontend_prod:
     build:
       context: .
       dockerfile: ./dockerfiles/Dockerfile.frontend
     environment:
       - WATCHPACK_POLLING=true
     depends_on:
-      - data_provider_api_test
+      - data_provider_api_prod
   
-  scraper_test:
+  scraper_prod:
     build:
       context: .
       dockerfile: ./dockerfiles/Dockerfile.scraper_service
@@ -106,12 +106,12 @@ services:
       DB_PASS: ${DB_PASS}
       SCRAPER_URL: ${SCRAPER_URL}
     volumes:
-      - ./logs_test/:/var/log/
+      - ./logs_prod/:/var/log
     depends_on:
-      db_test:
+      db_prod:
         condition: service_healthy
 
 volumes:
-  db-data-test:
-  redis-data-test:
+  db-data-prod:
+  redis-data-prod:
   # react-build-test:
