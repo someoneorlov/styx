@@ -121,3 +121,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
     │   └── scraper_service
     │
     └── styx_packages          <- Auxilliary custom libraries.
+
+
+## Setup
+
+After cloning the repository, run the setup script to configure git hooks:
+
+```sh
+./setup.sh

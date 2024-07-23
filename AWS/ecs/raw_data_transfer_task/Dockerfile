@@ -10,8 +10,8 @@ RUN pip install -r /app/requirements.txt
 COPY ./styx_packages /app/styx_packages
 RUN pip install ./styx_packages
 
-COPY AWS/ecs/raw_data_transfer_task/test/raw_data_transfer_test.py /app/raw_data_transfer_test.py
+COPY AWS/ecs/raw_data_transfer_task/raw_data_transfer.py /app/raw_data_transfer.py
 
 RUN mkdir /root/.ssh/
 
-ENTRYPOINT ["python", "/app/raw_data_transfer_test.py"]
+ENTRYPOINT ["python", "/app/raw_data_transfer.py"]
