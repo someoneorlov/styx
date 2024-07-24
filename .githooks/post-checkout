@@ -1,83 +1,19 @@
 #!/bin/bash
 
-# Get the current branch name
-branch_name=$(git rev-parse --abbrev-ref HEAD)
+# Generate environment files
+/home/ec2-user/projects/styx/scripts/generate_env.sh
 
-# Set the ENVIRONMENT variable based on the branch name
-if [ "$branch_name" == "main" ]; then
-  ENVIRONMENT=prod
-elif [ "$branch_name" == "test" ]; then
-  ENVIRONMENT=test
+# Source the generated .env file to ensure all environment variables are available
+if [ -f /home/ec2-user/projects/styx/.env ]; then
+  export $(cat /home/ec2-user/projects/styx/.env | grep -v '^#' | xargs)
+  echo "Loaded environment variables from .env file"
 else
-  ENVIRONMENT=dev
+  echo "Environment file .env does not exist"
+  exit 1
 fi
 
-# Inform the user of the current environment setting
-echo "Switched to branch '$branch_name'. ENVIRONMENT is set to '$ENVIRONMENT'."
+# Generate the Nginx Dockerfile
+/home/ec2-user/projects/styx/scripts/generate_dockerfile.sh
 
-# Write the ENVIRONMENT variable to a file to persist it across shell sessions
-echo "export ENVIRONMENT=$ENVIRONMENT" > ~/.current_env
-
-# Paths to the env files
-common_env=".env.common"
-env_file=".env.${ENVIRONMENT}"
-common_env_aws="AWS/.env.common_aws"
-env_file_aws="AWS/.env.${ENVIRONMENT}_aws"
-target_env=".env"
-
-# Create the target .env file by combining common and environment-specific env files
-if [ -f "$common_env" ] && [ -f "$env_file" ] && [ -f "$common_env_aws" ] && [ -f "$env_file_aws" ]; then
-  cat $common_env <(echo) $env_file <(echo) $common_env_aws <(echo) $env_file_aws > $target_env
-else
-  echo "Missing environment files for branch '$branch_name'. Skipping .env generation."
-fi
-
-# Source the generated .env file if it exists
-if [ -f $target_env ]; then
-  export $(cat $target_env | grep -v '^#' | xargs)
-  echo "Loaded environment variables from $target_env for branch $branch_name"
-else
-  echo "Environment file $target_env does not exist"
-fi
-
-# Generate Dockerfile for Nginx based on the environment
-dockerfile_path="/home/ec2-user/projects/styx/dockerfiles/Dockerfile.nginx"
-
-if [ "$ENVIRONMENT" == "prod" ]; then
-  cat > $dockerfile_path <<EOL
-FROM nginx:1.24.0
-
-COPY ./styx_app/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY ./styx_app/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY .htpasswd /etc/nginx/.htpasswd
-
-COPY --from=styx_frontend_prod:latest /app/build /usr/share/nginx/html/prod
-
-EXPOSE 80
-EXPOSE 443
-CMD ["nginx", "-g", "daemon off;"]
-EOL
-elif [ "$ENVIRONMENT" == "test" ]; then
-  cat > $dockerfile_path <<EOL
-FROM nginx:1.24.0
-
-COPY ./styx_app/nginx/nginx.conf /etc/nginx/nginx.conf
-COPY ./styx_app/nginx/default.conf /etc/nginx/conf.d/default.conf
-COPY .htpasswd /etc/nginx/.htpasswd
-
-COPY --from=styx_frontend_test:latest /app/build /usr/share/nginx/html/test
-
-EXPOSE 80
-EXPOSE 443
-CMD ["nginx", "-g", "daemon off;"]
-EOL
-else
-  echo "No valid environment found for branch '$branch_name'. Skipping Dockerfile generation."
-fi
-
-# Generate JSON file with replaced placeholders for the current environment
-aws_dir="/home/ec2-user/projects/styx/AWS"
-task_dir="ecs/raw_data_transfer_task"
-template_file="$aws_dir/$task_dir/raw-data-transfer-template.json"
-output_file="$aws_dir/$task_dir/raw-data-transfer.json"
-/home/ec2-user/projects/styx/scripts/replace_placeholders.sh $template_file $output_file
+# Generate JSON files with replaced placeholders for the current environment
+/home/ec2-user/projects/styx/scripts/generate_json.sh

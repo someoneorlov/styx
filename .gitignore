@@ -116,3 +116,6 @@ notebooks/**/*.tar.gz
 
 # Ignore generated tasks
 AWS/ecs/raw_data_transfer_task/raw-data-transfer.json
+
+# Ignore generated Dockerfiles
+dockerfiles/Dockerfile.nginx
