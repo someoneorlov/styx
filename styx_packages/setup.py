@@ -10,5 +10,6 @@ setup(
     install_requires=[
         "sqlalchemy==2.0.25",  # Add other dependencies if necessary
         "psycopg2-binary==2.9.9",
+        "boto3==1.34",
     ],
 )

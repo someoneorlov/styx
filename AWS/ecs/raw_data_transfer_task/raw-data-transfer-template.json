@@ -15,31 +15,15 @@
                 {
                     "name": "DATA_PROVIDER_API_URL",
                     "value": "${DATA_PROVIDER_API_URL}"
+                },
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "${ENVIRONMENT}"
                 }
             ],
             "mountPoints": [],
             "volumesFrom": [],
             "secrets": [
-                {
-                    "name": "AWS_DB_HOST",
-                    "valueFrom": "${AWS_DB_HOST}"
-                },
-                {
-                    "name": "AWS_DB_NAME",
-                    "valueFrom": "${AWS_DB_NAME}"
-                },
-                {
-                    "name": "AWS_DB_PASS",
-                    "valueFrom": "${AWS_DB_PASS}"
-                },
-                {
-                    "name": "AWS_DB_PORT",
-                    "valueFrom": "${AWS_DB_PORT}"
-                },
-                {
-                    "name": "AWS_DB_USER",
-                    "valueFrom": "${AWS_DB_USER}"
-                },
                 {
                     "name": "SSH_CONFIG",
                     "valueFrom": "${SSH_CONFIG}"
