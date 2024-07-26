@@ -16,16 +16,12 @@ from styx_packages.data_connector.db_models import (
 
 # Access environment variables at the beginning
 ENDPOINT_NAME = os.getenv("ENDPOINT_NAME", "sentiment-catboost-model-endpoint")
-ENVIRONMENT = os.getenv("ENVIRONMENT", "test")
-DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
 
 nltk.data.path.append("/opt/python/nltk_data")
 
 use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
 runtime = boto3.client("runtime.sagemaker")
-
-logger.info(f"Environment: {ENVIRONMENT}")
 
 
 def preprocess_text(text):
@@ -134,6 +130,12 @@ def mark_news_as_processed(db, news_ids):
 
 
 def lambda_handler(event, context):
+    environment = (
+        event.get("environment", {}).get("Variables", {}).get("ENVIRONMENT", "test")
+    )
+    logger.info(f"Environment: {environment}")
+
+    DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{environment}"
     engine = get_engine(
         DB_SECRET_NAME,
         use_file_handler=False,

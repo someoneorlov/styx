@@ -13,9 +13,8 @@ from styx_packages.data_connector.db_models import (
 )
 from openai import OpenAI
 
-ENVIRONMENT = os.getenv("ENVIRONMENT")
+
 REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
-DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
 OPENAI_SECRET_NAME = "openai/styx"
 prefix = os.getenv("MODEL_PREFIX", "")
 batch_size = int(os.getenv("FETCH_RAW_BATCH_SIZE", 100))
@@ -24,8 +23,6 @@ input_length = int(os.getenv("INP_TOKEN_LENGTH", 1024))
 
 use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
-
-logger.info(f"Environment: {ENVIRONMENT}")
 
 role = (
     "You are a Financial Analyst specializing in News Sentiment Evaluation, "
@@ -173,6 +170,13 @@ def mark_news_as_processed(db, news_ids):
 
 
 def lambda_handler(event, context):
+    environment = (
+        event.get("environment", {}).get("Variables", {}).get("ENVIRONMENT", "test")
+    )
+    logger.info(f"Environment: {environment}")
+
+    DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{environment}"
+
     engine = get_engine(
         DB_SECRET_NAME,
         use_file_handler=False,
