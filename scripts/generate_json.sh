@@ -16,3 +16,11 @@ generate_json() {
 
 # Call the function for each task directory with specific template and output file names
 generate_json "/home/ec2-user/projects/styx/AWS" "ecs/raw_data_transfer_task" "raw-data-transfer-template.json" "raw-data-transfer.json"
+
+generate_json "/home/ec2-user/projects/styx/AWS" "ecs/sentiment_result_data_transfer_task" "sentiment-result-data-transfer-template.json" "sentiment-result-data-transfer.json"
+
+generate_json "/home/ec2-user/projects/styx/AWS" "ecs/summary_result_data_transfer_task" "summary-result-data-transfer-template.json" "summary-result-data-transfer.json"
+
+generate_json "/home/ec2-user/projects/styx/AWS" "ecs/flyway_migration_task" "flyway-migration-template.json" "flyway-migration.json"
+
+generate_json "/home/ec2-user/projects/styx/AWS" "step_functions" "data-workflow-defenition-template.json" "data-workflow-defenition.json"

@@ -1,9 +1,9 @@
 {
-    "family": "raw-data-transfer-${ENVIRONMENT}",
+    "family": "sentiment-result-data-transfer-${ENVIRONMENT}",
     "containerDefinitions": [
         {
-            "name": "raw-data-transfer-${ENVIRONMENT}",
-            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/raw-data-transfer-${ENVIRONMENT}",
+            "name": "sentiment-result-data-transfer-${ENVIRONMENT}",
+            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/sentiment-result-data-transfer-${ENVIRONMENT}",
             "cpu": 0,
             "portMappings": [],
             "essential": true,
@@ -45,7 +45,7 @@
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "/ecs/raw-data-transfer-${ENVIRONMENT}",
+                    "awslogs-group": "/ecs/sentiment-result-data-transfer-${ENVIRONMENT}",
                     "awslogs-region": "us-east-1",
                     "awslogs-stream-prefix": "ecs"
                 },

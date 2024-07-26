@@ -11,12 +11,11 @@ logger = setup_logger(__name__)
 
 setup_ssh()
 
-AWS_DB_HOST = os.getenv("AWS_DB_HOST")
-AWS_DB_PORT = os.getenv("AWS_DB_PORT")
-AWS_DB_NAME = os.getenv("AWS_DB_NAME")
-AWS_DB_USER = os.getenv("AWS_DB_USER")
-AWS_DB_PASS = os.getenv("AWS_DB_PASS")
+ENVIRONMENT = os.getenv("ENVIRONMENT")
+DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
 DATA_PROVIDER_API_URL = os.getenv("DATA_PROVIDER_API_URL")
+
+logger.info(f"Environment: {ENVIRONMENT}")
 
 
 def fetch_data(batch_size: int = 100) -> list:
@@ -74,7 +73,8 @@ def handle_rds_operations(data):
     logger.info(f"Preparing to insert {len(data)} articles into the DB...")
     try:
         engine = get_engine(
-            AWS_DB_HOST, AWS_DB_PORT, AWS_DB_NAME, AWS_DB_USER, AWS_DB_PASS
+            DB_SECRET_NAME,
+            use_file_handler=False,
         )
         SessionLocal = session_factory(engine)
         db = SessionLocal()

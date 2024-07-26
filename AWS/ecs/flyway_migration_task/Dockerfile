@@ -15,10 +15,10 @@ RUN mkdir -p /flyway/conf && chown -R flywayuser:flywayuser /flyway/conf
 USER flywayuser
 
 # Copy the .env file, Flyway configuration, and entrypoint script
-COPY --chown=flywayuser:flywayuser prod/entrypoint.sh /flyway/entrypoint.sh
-COPY --chown=flywayuser:flywayuser prod/sql /flyway/sql
-COPY --chown=flywayuser:flywayuser prod/flyway.conf.template /flyway/conf/flyway.conf.template
-COPY --chown=flywayuser:flywayuser .env /flyway/.env
+COPY --chown=flywayuser:flywayuser entrypoint.sh /flyway/entrypoint.sh
+COPY --chown=flywayuser:flywayuser ./sql /flyway/sql
+COPY --chown=flywayuser:flywayuser flyway.conf.template /flyway/conf/flyway.conf.template
+# COPY --chown=flywayuser:flywayuser .env /flyway/.env
 
 # Set the correct permissions for the entrypoint script and configuration directory
 RUN chmod +x /flyway/entrypoint.sh

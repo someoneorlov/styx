@@ -24,7 +24,7 @@ load_dotenv("/opt/airflow/styx/.env")
 # Load the environment-specific .env file
 load_dotenv(f"/opt/airflow/styx/.env.{env}")
 
-LOG_DIR = os.getenv("LOG_DIR")
+log_dir = f"/opt/airflow/styx/logs_{env}"
 
 with DAG(
     f"scrape_google_news_{env}",
@@ -57,7 +57,7 @@ with DAG(
         mount_tmp_dir=False,
         mounts=[
             Mount(
-                source=LOG_DIR,
+                source=log_dir,
                 target="/var/log",
                 type="bind",
             )

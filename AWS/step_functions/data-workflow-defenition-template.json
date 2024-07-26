@@ -1,32 +1,15 @@
 {
   "Comment": "State Machine for Data Transfer and Processing",
-  "StartAt": "RawDataTransferTaksPROD",
+  "StartAt": "GetLatestRawDataTransferTaskDefinition",
   "States": {
-    "RawDataTransferTaksPROD": {
+    "GetLatestRawDataTransferTaskDefinition": {
       "Type": "Task",
-      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Resource": "arn:aws:lambda:us-east-1:381491949871:function:latestTaskDefinition",
       "Parameters": {
-        "LaunchType": "FARGATE",
-        "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
-        "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/raw-data-transfer-prod:2",
-        "NetworkConfiguration": {
-          "AwsvpcConfiguration": {
-            "Subnets": [
-              "subnet-0de64508bed2d94b5",
-              "subnet-0b34bfb024fa1325b",
-              "subnet-0896b9f71c46c3601",
-              "subnet-02748651014762c9c",
-              "subnet-01fc8731fbcc2def3",
-              "subnet-00f05101da53ee352"
-            ],
-            "SecurityGroups": [
-              "sg-03682fe5c7a94d94f"
-            ],
-            "AssignPublicIp": "ENABLED"
-          }
-        }
+        "task_def_name": "raw-data-transfer-${ENVIRONMENT}"
       },
-      "Next": "sentimentProcessingLambdaProd",
+      "ResultPath": "$.rawDataTransferTaskDef",
+      "Next": "RawDataTransferTask",
       "Retry": [
         {
           "ErrorEquals": [
@@ -50,17 +33,67 @@
       ],
       "TimeoutSeconds": 300
     },
-    "FailState": {
-      "Type": "Fail",
-      "ErrorPath": "$.error-info.Error",
-      "CausePath": "$.error-info.Cause"
+    "RawDataTransferTask": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::ecs:runTask.sync",
+      "Parameters": {
+        "LaunchType": "FARGATE",
+        "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
+        "TaskDefinition.$": "$.rawDataTransferTaskDef.latest_revision",
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "Subnets": [
+              "subnet-0de64508bed2d94b5",
+              "subnet-0b34bfb024fa1325b",
+              "subnet-0896b9f71c46c3601",
+              "subnet-02748651014762c9c",
+              "subnet-01fc8731fbcc2def3",
+              "subnet-00f05101da53ee352"
+            ],
+            "SecurityGroups": [
+              "sg-03682fe5c7a94d94f"
+            ],
+            "AssignPublicIp": "ENABLED"
+          }
+        }
+      },
+      "Next": "sentimentProcessingLambda",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error-info",
+          "Next": "FailState"
+        }
+      ],
+      "TimeoutSeconds": 300
     },
-    "sentimentProcessingLambdaProd": {
+    "sentimentProcessingLambda": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "OutputPath": "$.Payload",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:sentimentProcessingLambdaProd:$LATEST"
+        "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:sentimentProcessingLambda:$LATEST",
+        "Payload": {
+          "environment": {
+            "Variables": {
+              "ENVIRONMENT": "${ENVIRONMENT}"
+            }
+          }
+        }
       },
       "Retry": [
         {
@@ -92,18 +125,49 @@
         {
           "Variable": "$.message",
           "IsPresent": true,
-          "Next": "summaryProcessingLambdaProd"
+          "Next": "summaryProcessingLambda"
         }
       ],
-      "Default": "SentimentResultDataTransferTaksPROD"
+      "Default": "GetLatestSentimentProcessingTaskDefinition"
     },
-    "SentimentResultDataTransferTaksPROD": {
+    "GetLatestSentimentProcessingTaskDefinition": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:381491949871:function:latestTaskDefinition",
+      "Parameters": {
+        "task_def_name": "sentiment-result-data-transfer-${ENVIRONMENT}"
+      },
+      "ResultPath": "$.sentimentProcessingTaskDef",
+      "Next": "SentimentResultDataTransferTask",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error-info",
+          "Next": "FailState"
+        }
+      ],
+      "TimeoutSeconds": 300
+    },
+    "SentimentResultDataTransferTask": {
       "Type": "Task",
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
-        "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/sentiment-result-data-transfer-prod:2",
+        "TaskDefinition.$": "$.sentimentProcessingTaskDef.latest_revision",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -143,14 +207,21 @@
         }
       ],
       "TimeoutSeconds": 300,
-      "Next": "summaryProcessingLambdaProd"
+      "Next": "summaryProcessingLambda"
     },
-    "summaryProcessingLambdaProd": {
+    "summaryProcessingLambda": {
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "OutputPath": "$.Payload",
       "Parameters": {
-        "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:summaryProcessingLambdaProd:$LATEST"
+        "FunctionName": "arn:aws:lambda:us-east-1:381491949871:function:summaryProcessingLambda:$LATEST",
+        "Payload": {
+          "environment": {
+            "Variables": {
+              "ENVIRONMENT": "${ENVIRONMENT}"
+            }
+          }
+        }
       },
       "Retry": [
         {
@@ -185,19 +256,50 @@
           "Next": "Pass"
         }
       ],
-      "Default": "SummaryResultDataTransferTaksPROD"
+      "Default": "GetLatestSummaryProcessingTaskDefinition"
+    },
+    "GetLatestSummaryProcessingTaskDefinition": {
+      "Type": "Task",
+      "Resource": "arn:aws:lambda:us-east-1:381491949871:function:latestTaskDefinition",
+      "Parameters": {
+        "task_def_name": "summary-result-data-transfer-${ENVIRONMENT}"
+      },
+      "ResultPath": "$.summaryProcessingTaskDef",
+      "Next": "SummaryResultDataTransferTask",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "BackoffRate": 2,
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "MaxDelaySeconds": 120,
+          "JitterStrategy": "FULL"
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error-info",
+          "Next": "FailState"
+        }
+      ],
+      "TimeoutSeconds": 300
     },
     "Pass": {
       "Type": "Pass",
       "End": true
     },
-    "SummaryResultDataTransferTaksPROD": {
+    "SummaryResultDataTransferTask": {
       "Type": "Task",
       "Resource": "arn:aws:states:::ecs:runTask.sync",
       "Parameters": {
         "LaunchType": "FARGATE",
         "Cluster": "arn:aws:ecs:us-east-1:381491949871:cluster/styx-nlp-server",
-        "TaskDefinition": "arn:aws:ecs:us-east-1:381491949871:task-definition/summary-result-data-transfer-prod:2",
+        "TaskDefinition.$": "$.summaryProcessingTaskDef.latest_revision",
         "NetworkConfiguration": {
           "AwsvpcConfiguration": {
             "Subnets": [
@@ -238,6 +340,11 @@
       ],
       "TimeoutSeconds": 300,
       "End": true
+    },
+    "FailState": {
+      "Type": "Fail",
+      "ErrorPath": "$.error-info.Error",
+      "CausePath": "$.error-info.Cause"
     }
   }
 }
