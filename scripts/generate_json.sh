@@ -22,3 +22,5 @@ generate_json "/home/ec2-user/projects/styx/AWS" "ecs/sentiment_result_data_tran
 generate_json "/home/ec2-user/projects/styx/AWS" "ecs/summary_result_data_transfer_task" "summary-result-data-transfer-template.json" "summary-result-data-transfer.json"
 
 generate_json "/home/ec2-user/projects/styx/AWS" "ecs/flyway_migration_task" "flyway-migration-template.json" "flyway-migration.json"
+
+generate_json "/home/ec2-user/projects/styx/AWS" "step_functions" "data-workflow-defenition-template.json" "data-workflow-defenition.json"

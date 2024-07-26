@@ -15,6 +15,8 @@ ENVIRONMENT = os.getenv("ENVIRONMENT")
 DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
 DATA_PROVIDER_API_URL = os.getenv("DATA_PROVIDER_API_URL")
 
+logger.info(f"Environment: {ENVIRONMENT}")
+
 
 def fetch_data(batch_size: int = 100) -> list:
     try:

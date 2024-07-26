@@ -119,6 +119,7 @@ AWS/ecs/raw_data_transfer_task/raw-data-transfer.json
 AWS/ecs/sentiment_result_data_transfer_task/sentiment-result-data-transfer.json
 AWS/ecs/summary_result_data_transfer_task/summary-result-data-transfer.json
 AWS/ecs/flyway_migration_task/flyway-migration.json
+AWS/step_functions/data-workflow-defenition.json
 
 # Ignore generated Dockerfiles
 dockerfiles/Dockerfile.nginx

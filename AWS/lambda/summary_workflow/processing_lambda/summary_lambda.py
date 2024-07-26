@@ -18,13 +18,14 @@ REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
 DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
 OPENAI_SECRET_NAME = "openai/styx"
 prefix = os.getenv("MODEL_PREFIX", "")
-batch_size = int(os.getenv("FETCH_RAW_BATCH_SIZE", 10))
-model_batch_size = int(os.getenv("MODEL_BATCH_SIZE", 5))
-input_length = int(os.getenv("INP_TOKEN_LENGTH", 256))
+batch_size = int(os.getenv("FETCH_RAW_BATCH_SIZE", 100))
+model_batch_size = int(os.getenv("MODEL_BATCH_SIZE", 10))
+input_length = int(os.getenv("INP_TOKEN_LENGTH", 1024))
 
 use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
 
+logger.info(f"Environment: {ENVIRONMENT}")
 
 role = (
     "You are a Financial Analyst specializing in News Sentiment Evaluation, "
@@ -51,26 +52,6 @@ def get_secret(secret_name, region_name=REGION_NAME):
 
     secret = get_secret_value_response["SecretString"]
     return json.loads(secret)
-
-
-def get_db_session(DB_SECRET_NAME, REGION_NAME):
-    db_secrets = get_secret(DB_SECRET_NAME, REGION_NAME)
-    AWS_DB_HOST = db_secrets["host"]
-    AWS_DB_PORT = db_secrets["port"]
-    AWS_DB_NAME = db_secrets["dbname"]
-    AWS_DB_USER = db_secrets["username"]
-    AWS_DB_PASS = db_secrets["password"]
-
-    engine = get_engine(
-        AWS_DB_HOST,
-        AWS_DB_PORT,
-        AWS_DB_NAME,
-        AWS_DB_USER,
-        AWS_DB_PASS,
-        use_file_handler=use_file_handler,
-    )
-    SessionLocal = session_factory(engine, use_file_handler=use_file_handler)
-    return SessionLocal
 
 
 def get_openai_client(OPENAI_SECRET_NAME, REGION_NAME):
@@ -192,7 +173,13 @@ def mark_news_as_processed(db, news_ids):
 
 
 def lambda_handler(event, context):
-    db = get_db_session(DB_SECRET_NAME, REGION_NAME)
+    engine = get_engine(
+        DB_SECRET_NAME,
+        use_file_handler=False,
+    )
+    SessionLocal = session_factory(engine)
+    db = SessionLocal()
+
     openai_client = get_openai_client(OPENAI_SECRET_NAME, REGION_NAME)
 
     try:

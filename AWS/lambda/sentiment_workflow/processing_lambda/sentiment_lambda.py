@@ -13,11 +13,11 @@ from styx_packages.data_connector.db_models import (
     AWSSentimentResults,
 )
 
+
 # Access environment variables at the beginning
 ENDPOINT_NAME = os.getenv("ENDPOINT_NAME", "sentiment-catboost-model-endpoint")
-ENVIRONMENT = os.getenv("ENVIRONMENT")
-REGION_NAME = os.getenv("REGION_NAME", "us-east-1")
-SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
+ENVIRONMENT = os.getenv("ENVIRONMENT", "test")
+DB_SECRET_NAME = f"rds-db-credentials/styx_nlp_database_{ENVIRONMENT}"
 
 nltk.data.path.append("/opt/python/nltk_data")
 
@@ -25,19 +25,7 @@ use_file_handler = False
 logger = setup_logger(__name__, use_file_handler=use_file_handler)
 runtime = boto3.client("runtime.sagemaker")
 
-
-def get_secret(secret_name, region_name=REGION_NAME):
-    session = boto3.session.Session()
-    client = session.client(service_name="secretsmanager", region_name=region_name)
-
-    try:
-        get_secret_value_response = client.get_secret_value(SecretId=secret_name)
-    except ClientError as e:
-        logger.error(f"Error retrieving secret: {e}")
-        raise e
-
-    secret = get_secret_value_response["SecretString"]
-    return json.loads(secret)
+logger.info(f"Environment: {ENVIRONMENT}")
 
 
 def preprocess_text(text):
@@ -146,23 +134,11 @@ def mark_news_as_processed(db, news_ids):
 
 
 def lambda_handler(event, context):
-    secrets = get_secret(SECRET_NAME, REGION_NAME)
-
-    AWS_DB_HOST = secrets["host"]
-    AWS_DB_PORT = secrets["port"]
-    AWS_DB_NAME = secrets["dbname"]
-    AWS_DB_USER = secrets["username"]
-    AWS_DB_PASS = secrets["password"]
-
     engine = get_engine(
-        AWS_DB_HOST,
-        AWS_DB_PORT,
-        AWS_DB_NAME,
-        AWS_DB_USER,
-        AWS_DB_PASS,
-        use_file_handler=use_file_handler,
+        DB_SECRET_NAME,
+        use_file_handler=False,
     )
-    SessionLocal = session_factory(engine, use_file_handler=use_file_handler)
+    SessionLocal = session_factory(engine)
     db = SessionLocal()
 
     try:
