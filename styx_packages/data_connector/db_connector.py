@@ -63,8 +63,6 @@ def get_engine(
     DATABASE_URL = (
         f"postgresql+psycopg2://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
     )
-    logger.info(f"Database URL constructed: {DATABASE_URL}")
-
     retries = 0
     delay = initial_delay
 
