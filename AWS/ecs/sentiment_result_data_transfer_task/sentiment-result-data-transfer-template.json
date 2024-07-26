@@ -1,0 +1,69 @@
+{
+    "family": "sentiment-result-data-transfer-${ENVIRONMENT}",
+    "containerDefinitions": [
+        {
+            "name": "sentiment-result-data-transfer-${ENVIRONMENT}",
+            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/sentiment-result-data-transfer-${ENVIRONMENT}",
+            "cpu": 0,
+            "portMappings": [],
+            "essential": true,
+            "environment": [
+                {
+                    "name": "SSH_PORT_FORWARD",
+                    "value": "${SSH_PORT_FORWARD}"
+                },
+                {
+                    "name": "DATA_PROVIDER_API_URL",
+                    "value": "${DATA_PROVIDER_API_URL}"
+                },
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "${ENVIRONMENT}"
+                }
+            ],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "secrets": [
+                {
+                    "name": "SSH_CONFIG",
+                    "valueFrom": "${SSH_CONFIG}"
+                },
+                {
+                    "name": "SSH_PRIVATE_KEY",
+                    "valueFrom": "${SSH_PRIVATE_KEY}"
+                },
+                {
+                    "name": "SSH_PUBLIC_KEY",
+                    "valueFrom": "${SSH_PUBLIC_KEY}"
+                },
+                {
+                    "name": "SSH_REMOTE_CREDS",
+                    "valueFrom": "${SSH_REMOTE_CREDS}"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-create-group": "true",
+                    "awslogs-group": "/ecs/sentiment-result-data-transfer-${ENVIRONMENT}",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "taskRoleArn": "arn:aws:iam::381491949871:role/ecsDataTransferRole",
+    "executionRoleArn": "arn:aws:iam::381491949871:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "runtimePlatform": {
+        "cpuArchitecture": "X86_64",
+        "operatingSystemFamily": "LINUX"
+    }
+}

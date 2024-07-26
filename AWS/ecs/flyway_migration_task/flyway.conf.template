@@ -1,0 +1,4 @@
+flyway.url=jdbc:postgresql://${AWS_DB_HOST}:${AWS_DB_PORT}/${AWS_DB_NAME}
+flyway.user=${AWS_DB_USER}
+flyway.password=${AWS_DB_PASS}
+flyway.locations=filesystem:/flyway/sql

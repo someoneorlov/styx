@@ -1,38 +1,47 @@
 {
-    "family": "flyway-migration-prod",
+    "family": "flyway-migration-${ENVIRONMENT}",
     "containerDefinitions": [
         {
-            "name": "flyway-migration-prod",
-            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/flyway-migrations-prod",
+            "name": "flyway-migration-${ENVIRONMENT}",
+            "image": "381491949871.dkr.ecr.us-east-1.amazonaws.com/flyway-migrations-${ENVIRONMENT}",
             "cpu": 0,
             "portMappings": [],
             "essential": true,
-            "environment": [],
+            "environment": [
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "${ENVIRONMENT}"
+                }
+            ],
             "mountPoints": [],
             "volumesFrom": [],
             "secrets": [
                 {
-                    "name": "AWS_RDS_STYX_NLP_DB_ENDPOINT",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:host::"
+                    "name": "AWS_DB_HOST",
+                    "valueFrom": "${AWS_DB_HOST}"
                 },
                 {
-                    "name": "AWS_RDS_STYX_NLP_DB_PROD",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:dbname::"
+                    "name": "AWS_DB_PORT",
+                    "valueFrom": "${AWS_DB_PORT}"
                 },
                 {
-                    "name": "AWS_RDS_STYX_NLP_DB_USER_PROD",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:username::"
+                    "name": "AWS_DB_NAME",
+                    "valueFrom": "${AWS_DB_NAME}"
                 },
                 {
-                    "name": "AWS_RDS_STYX_NLP_DB_PASS_PROD",
-                    "valueFrom": "arn:aws:secretsmanager:us-east-1:381491949871:secret:rds-db-credentials/styx_nlp_database_prod-Nx0NU1:password::"
+                    "name": "AWS_DB_USER",
+                    "valueFrom": "${AWS_DB_USER}"
+                },
+                {
+                    "name": "AWS_DB_PASS",
+                    "valueFrom": "${AWS_DB_PASS}"
                 }
             ],
             "logConfiguration": {
                 "logDriver": "awslogs",
                 "options": {
                     "awslogs-create-group": "true",
-                    "awslogs-group": "/ecs/flyway-migration-prod",
+                    "awslogs-group": "/ecs/flyway-migration-${ENVIRONMENT}",
                     "awslogs-region": "us-east-1",
                     "awslogs-stream-prefix": "ecs"
                 },
